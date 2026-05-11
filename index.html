@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lawn Water Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body { overscroll-behavior: none; }
+
+        .zone-card {
+            transition: all 0.2s ease;
+        }
+        .zone-card:active {
+            transform: scale(0.98);
+        }
+
+        .btn-action {
+            min-height: 56px;
+            min-width: 56px;
+            border-radius: 1rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        .calendar-day {
+            min-height: 48px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            position: relative;
+        }
+
+        .calendar-day.has-water {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .calendar-day.today {
+            border: 2px solid #0ea5e9;
+        }
+
+        .timer-display {
+            font-variant-numeric: tabular-nums;
+            font-family: 'Courier New', monospace;
+        }
+
+        .pulse-dot {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.2s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        nav a.active {
+            color: #0ea5e9;
+        }
+        nav a.active svg {
+            stroke: #0ea5y9;
+        }
+
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-20">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                </svg>
+                Lawn Water Tracker
+            </h1>
+            <button onclick="app.showSettings()" class="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition">
+                <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-lg mx-auto px-4 py-4">
+
+        <!-- Active Timer Banner -->
+        <div id="activeTimerBanner" class="hidden mb-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl p-4 text-white shadow-lg slide-up">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm opacity-80 font-medium">Currently Watering</p>
+                    <p id="activeTimerZone" class="text-xl font-bold mt-1"></p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="activeTimerDuration" class="timer-display text-2xl font-bold"></span>
+                    <div class="pulse-dot w-3 h-3 bg-white rounded-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Zones -->
+        <div id="tabZones" class="tab-content active">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Watering Zones</h2>
+                <button onclick="app.showAddZoneModal()" class="btn-action bg-cyan-500 text-white px-4 py-2 text-sm shadow-md active:bg-cyan-600">
+                    + Add Zone
+                </button>
+            </div>
+
+            <div id="zonesList" class="space-y-3"></div>
+
+            <div id="emptyZones" class="hidden text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                </svg>
+                <p class="text-gray-500 text-sm">No zones yet</p>
+                <p class="text-gray-400 text-xs mt-1">Tap "+ Add Zone" to get started</p>
+            </div>
+        </div>
+
+        <!-- Tab: Calendar -->
+        <div id="tabCalendar" class="tab-content">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Watering History</h2>
+
+            <!-- Month Navigation -->
+            <div class="flex items-center justify-between bg-white rounded-xl p-3 shadow-sm mb-4">
+                <button onclick="app.changeMonth(-1)" class="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <h3 id="calendarMonthYear" class="text-lg font-bold text-gray-800"></h3>
+                <button onclick="app.changeMonth(1)" class="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="bg-white rounded-xl shadow-sm p-3 mb-4">
+                <div class="grid grid-cols-7 gap-1 mb-2">
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Sun</div>
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Mon</div>
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Tue</div>
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Wed</div>
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Thu</div>
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Fri</div>
+                    <div class="text-center text-xs font-medium text-gray-400 py-1">Sat</div>
+                </div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+            </div>
+
+            <!-- Zone Totals -->
+            <div class="bg-white rounded-xl shadow-sm p-4">
+                <h3 class="font-bold text-gray-800 mb-3">Monthly Totals</h3>
+                <div id="zoneTotals" class="space-y-2"></div>
+                <div id="emptyTotals" class="hidden text-center py-4">
+                    <p class="text-gray-400 text-sm">No watering data for this month</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+        <div class="max-w-lg mx-auto flex justify-around py-2">
+            <a href="#" onclick="app.switchTab('zones'); return false;" id="navZones" class="tab-nav active flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                </svg>
+                <span class="text-xs font-medium">Zones</span>
+            </a>
+            <a href="#" onclick="app.switchTab('calendar'); return false;" id="navCalendar" class="tab-nav flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-xs font-medium">History</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Add Zone Modal -->
+    <div id="addZoneModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideAddZoneModal()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">New Watering Zone</h3>
+            <input type="text" id="newZoneName" placeholder="Zone name (e.g., Backyard)" maxlength="30"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none mb-4">
+            <div class="flex gap-3">
+                <button onclick="app.hideAddZoneModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
+                <button onclick="app.addZone()" class="flex-1 btn-action bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600">Add Zone</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Zone Modal -->
+    <div id="renameZoneModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideRenameZoneModal()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Rename Zone</h3>
+            <input type="text" id="renameZoneName" placeholder="New zone name" maxlength="30"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none mb-4">
+            <div class="flex gap-3">
+                <button onclick="app.hideRenameZoneModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
+                <button onclick="app.saveRenameZone()" class="flex-1 btn-action bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Session Modal -->
+    <div id="editSessionModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideEditSessionModal()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Session</h3>
+            <div id="editSessionInfo" class="mb-4 p-3 bg-cyan-50 rounded-xl"></div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+            <input type="datetime-local" id="editSessionStart"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+            <input type="datetime-local" id="editSessionEnd"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none mb-4">
+            <div class="mb-4 p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700">Duration</span>
+                <span id="editSessionDuration" class="font-bold text-cyan-600"></span>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="app.hideEditSessionModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
+                <button onclick="app.saveEditSession()" class="flex-1 btn-action bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Session Modal -->
+    <div id="deleteSessionModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideDeleteSessionModal()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Delete Session</h3>
+            <p id="deleteSessionInfo" class="text-sm text-gray-600 mb-6"></p>
+            <div class="flex gap-3">
+                <button onclick="app.hideDeleteSessionModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
+                <button onclick="app.confirmDeleteSession()" class="flex-1 btn-action bg-red-500 text-white py-3 rounded-xl shadow-md active:bg-red-600">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideSettings()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl max-h-[80vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Settings</h3>
+
+            <!-- Export -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Export Data</label>
+                <button onclick="app.exportData()" class="w-full btn-action bg-green-500 text-white py-3 rounded-xl shadow-md active:bg-green-600 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download JSON Backup
+                </button>
+            </div>
+
+            <!-- Import -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Import Data</label>
+                <label class="w-full btn-action bg-blue-500 text-white py-3 rounded-xl shadow-md active:bg-blue-600 flex items-center justify-center gap-2 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Upload JSON Backup
+                    <input type="file" accept=".json" onchange="app.importData(event)">
+                </label>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="mb-4">
+                <button onclick="app.clearAllData()" class="w-full btn-action bg-red-50 text-red-600 py-3 rounded-xl border-2 border-red-200 active:bg-red-100 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Clear All Data
+                </button>
+            </div>
+
+            <button onclick="app.hideSettings()" class="w-full btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Close</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-[60] bg-gray-800 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium fade-in"></div>
+
+<script>
+const app = {
+    // ── State ──────────────────────────────────────────────
+    zones: [],
+    logs: [],
+    activeTimers: {},   // { zoneId: { startTime, pausedDuration } }
+    currentTab: 'zones',
+    calendarDate: new Date(),
+
+    // ── Persistence ────────────────────────────────────────
+    STORAGE_KEY_ZONES: 'lawn_water_zones',
+    STORAGE_KEY_LOGS: 'lawn_water_logs',
+    STORAGE_KEY_TIMERS: 'lawn_water_active_timers',
+
+    saveZones() {
+        localStorage.setItem(this.STORAGE_KEY_ZONES, JSON.stringify(this.zones));
+    },
+    saveLogs() {
+        localStorage.setItem(this.STORAGE_KEY_LOGS, JSON.stringify(this.logs));
+    },
+    saveActiveTimers() {
+        const timers = {};
+        for (const [id, timer] of Object.entries(this.activeTimers)) {
+            timers[id] = { startTime: timer.startTime, pausedDuration: timer.pausedDuration };
+        }
+        localStorage.setItem(this.STORAGE_KEY_TIMERS, JSON.stringify(timers));
+    },
+
+    loadState() {
+        try {
+            this.zones = JSON.parse(localStorage.getItem(this.STORAGE_KEY_ZONES)) || [];
+            this.logs = JSON.parse(localStorage.getItem(this.STORAGE_KEY_LOGS)) || [];
+            const savedTimers = JSON.parse(localStorage.getItem(this.STORAGE_KEY_TIMERS)) || {};
+
+            // Restore active timers (account for time while tab was closed)
+            for (const [id, timer] of Object.entries(savedTimers)) {
+                if (timer.startTime && !timer.pausedDuration) {
+                    this.activeTimers[id] = {
+                        startTime: timer.startTime,
+                        pausedDuration: 0
+                    };
+                } else if (timer.startTime && timer.pausedDuration !== undefined) {
+                    this.activeTimers[id] = timer;
+                }
+            }
+
+            // Clean up timers for deleted zones
+            const zoneIds = new Set(this.zones.map(z => z.id));
+            for (const id of Object.keys(this.activeTimers)) {
+                if (!zoneIds.has(id)) delete this.activeTimers[id];
+            }
+        } catch (e) {
+            console.error('Failed to load state:', e);
+            this.zones = [];
+            this.logs = [];
+            this.activeTimers = {};
+        }
+    },
+
+    // ── Timer Logic ────────────────────────────────────────
+    getElapsedMs(zoneId) {
+        const timer = this.activeTimers[zoneId];
+        if (!timer) return 0;
+        if (timer.pausedDuration !== undefined && timer.pausedDuration > 0) {
+            // Paused: use stored cumulative duration
+            return timer.cumulativeMs || 0;
+        }
+        // Running: calculate from start + any previously accumulated time
+        const running = Date.now() - timer.startTime;
+        const prevCumulative = timer.cumulativeMs || 0;
+        return prevCumulative + running;
+    },
+
+    getFormattedDuration(ms) {
+        if (ms <= 0) return '0:00';
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    },
+
+    startTimer(zoneId) {
+        this.activeTimers[zoneId] = {
+            startTime: Date.now(),
+            pausedDuration: 0,
+            cumulativeMs: 0
+        };
+        this.saveActiveTimers();
+        this.renderZones();
+        this.updateBanner();
+    },
+
+    pauseTimer(zoneId) {
+        const timer = this.activeTimers[zoneId];
+        if (!timer || timer.pausedDuration !== undefined && timer.pausedDuration > 0) return;
+
+        const runningMs = Date.now() - timer.startTime;
+        const prevCumulative = timer.cumulativeMs || 0;
+        this.activeTimers[zoneId] = {
+            startTime: timer.startTime,
+            pausedDuration: prevCumulative + runningMs,
+            cumulativeMs: prevCumulative + runningMs
+        };
+        this.saveActiveTimers();
+        this.renderZones();
+        this.updateBanner();
+    },
+
+    resumeTimer(zoneId) {
+        const timer = this.activeTimers[zoneId];
+        if (!timer || !(timer.pausedDuration !== undefined && timer.pausedDuration > 0)) return;
+
+        this.activeTimers[zoneId] = {
+            startTime: Date.now(),
+            pausedDuration: 0,
+            cumulativeMs: timer.cumulativeMs || 0
+        };
+        this.saveActiveTimers();
+        this.renderZones();
+        this.updateBanner();
+    },
+
+    stopTimer(zoneId) {
+        const timer = this.activeTimers[zoneId];
+        if (!timer) return;
+
+        let totalMs;
+        if (timer.pausedDuration !== undefined && timer.pausedDuration > 0) {
+            totalMs = timer.cumulativeMs || 0;
+        } else {
+            totalMs = (timer.cumulativeMs || 0) + (Date.now() - timer.startTime);
+        }
+
+        if (totalMs < 1000) {
+            delete this.activeTimers[zoneId];
+            this.saveActiveTimers();
+            this.renderZones();
+            this.updateBanner();
+            return;
+        }
+
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (!zone) {
+            delete this.activeTimers[zoneId];
+            this.saveActiveTimers();
+            this.renderZones();
+            this.updateBanner();
+            return;
+        }
+
+        // Create log entry
+        const log = {
+            id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            zoneId: zoneId,
+            zoneName: zone.name,
+            startTime: timer.startTime,
+            endTime: Date.now(),
+            durationMs: totalMs
+        };
+
+        this.logs.push(log);
+        delete this.activeTimers[zoneId];
+        this.saveLogs();
+        this.saveActiveTimers();
+        this.renderZones();
+        this.updateBanner();
+        this.showToast(`Stopped watering "${zone.name}" — ${this.getFormattedDuration(totalMs)}`);
+
+        // Refresh calendar if visible
+        if (this.currentTab === 'calendar') {
+            this.renderCalendar();
+            this.renderZoneTotals();
+        }
+    },
+
+    // ── Zone Management ────────────────────────────────────
+    addZone() {
+        const nameInput = document.getElementById('newZoneName');
+        const name = nameInput.value.trim();
+        if (!name) return;
+
+        const zone = {
+            id: 'zone_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            name: name,
+            createdAt: new Date().toISOString()
+        };
+
+        this.zones.push(zone);
+        this.saveZones();
+        nameInput.value = '';
+        this.hideAddZoneModal();
+        this.renderZones();
+        this.showToast(`Zone "${name}" added`);
+    },
+
+    renameZone(zoneId, newName) {
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (!zone || !newName.trim()) return;
+
+        const oldName = zone.name;
+        zone.name = newName.trim();
+        this.saveZones();
+
+        // Update all logs for this zone with new name
+        let updatedCount = 0;
+        for (const log of this.logs) {
+            if (log.zoneId === zoneId) {
+                log.zoneName = zone.name;
+                updatedCount++;
+            }
+        }
+        this.saveLogs();
+
+        // Refresh calendar totals in case names changed grouping
+        if (this.currentTab === 'calendar') {
+            this.renderCalendar();
+            this.renderZoneTotals();
+        }
+
+        this.showToast(`Renamed "${oldName}" → "${zone.name}" (${updatedCount} sessions updated)`);
+    },
+
+    deleteZone(zoneId) {
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (!zone) return;
+
+        // Check for history
+        const sessionCount = this.logs.filter(l => l.zoneId === zoneId).length;
+        if (sessionCount > 0) {
+            const confirmed = confirm(
+                `Delete "${zone.name}" and all its ${sessionCount} watering session${sessionCount !== 1 ? 's' : ''}?\n\n` +
+                'This cannot be undone.'
+            );
+            if (!confirmed) return;
+        }
+
+        // Stop any active timer first
+        if (this.activeTimers[zoneId]) {
+            this.stopTimer(zoneId);
+        }
+
+        // Remove associated logs
+        this.logs = this.logs.filter(l => l.zoneId !== zoneId);
+        this.saveLogs();
+
+        this.zones = this.zones.filter(z => z.id !== zoneId);
+        this.saveZones();
+        this.renderZones();
+        this.showToast(`Zone "${zone.name}" deleted`);
+    },
+
+    // ── Sessions (past watering logs) ──────────────────────
+    toggleSessions(zoneId) {
+        const list = document.getElementById('sessionsList_' + zoneId);
+        const arrow = document.getElementById('sessionsArrow_' + zoneId);
+        const toggleBtn = document.getElementById('sessionsToggle_' + zoneId);
+
+        if (list.classList.contains('hidden')) {
+            list.classList.remove('hidden');
+            arrow.classList.add('rotate-180');
+            toggleBtn.querySelector('span').textContent = 'Hide Sessions';
+        } else {
+            list.classList.add('hidden');
+            arrow.classList.remove('rotate-180');
+            toggleBtn.querySelector('span').textContent = 'Show Sessions';
+        }
+    },
+
+    // Edit session state
+    editingSessionId: null,
+
+    showEditSessionModal(logId) {
+        const log = this.logs.find(l => l.id === logId);
+        if (!log) return;
+
+        this.editingSessionId = logId;
+
+        document.getElementById('editSessionInfo').innerHTML = `
+            <p class="text-sm font-medium text-cyan-700">${this.escapeHtml(log.zoneName)}</p>
+            <p class="text-xs text-gray-500 mt-1">Duration: ${this.getFormattedDuration(log.durationMs)}</p>
+        `;
+
+        // Format datetime-local value from timestamp
+        const startInput = document.getElementById('editSessionStart');
+        const endInput = document.getElementById('editSessionEnd');
+
+        startInput.value = this.toDatetimeLocal(new Date(log.startTime));
+        endInput.value = this.toDatetimeLocal(new Date(log.endTime));
+
+        // Update duration display
+        this.updateEditDuration();
+
+        document.getElementById('editSessionModal').classList.remove('hidden');
+    },
+
+    hideEditSessionModal() {
+        document.getElementById('editSessionModal').classList.add('hidden');
+        this.editingSessionId = null;
+    },
+
+    updateEditDuration() {
+        const startVal = document.getElementById('editSessionStart').value;
+        const endVal = document.getElementById('editSessionEnd').value;
+
+        if (startVal && endVal) {
+            const diff = new Date(endVal).getTime() - new Date(startVal).getTime();
+            document.getElementById('editSessionDuration').textContent = this.getFormattedDuration(Math.max(0, diff));
+        } else {
+            document.getElementById('editSessionDuration').textContent = '—';
+        }
+    },
+
+    saveEditSession() {
+        const logId = this.editingSessionId;
+        if (!logId) return;
+
+        const startVal = document.getElementById('editSessionStart').value;
+        const endVal = document.getElementById('editSessionEnd').value;
+
+        if (!startVal || !endVal) {
+            alert('Please provide both start and end dates.');
+            return;
+        }
+
+        const newStart = new Date(startVal).getTime();
+        const newEnd = new Date(endVal).getTime();
+
+        if (newEnd <= newStart) {
+            alert('End time must be after start time.');
+            return;
+        }
+
+        const log = this.logs.find(l => l.id === logId);
+        if (!log) return;
+
+        const oldDuration = log.durationMs;
+        log.startTime = newStart;
+        log.endTime = newEnd;
+        log.durationMs = newEnd - newStart;
+
+        this.saveLogs();
+        this.hideEditSessionModal();
+        this.renderZones();
+        if (this.currentTab === 'calendar') {
+            this.renderCalendar();
+            this.renderZoneTotals();
+        }
+        this.showToast(`Session updated (${this.getFormattedDuration(oldDuration)} → ${this.getFormattedDuration(log.durationMs)})`);
+    },
+
+    // Delete session state
+    deletingSessionId: null,
+
+    showDeleteSessionModal(logId) {
+        const log = this.logs.find(l => l.id === logId);
+        if (!log) return;
+
+        this.deletingSessionId = logId;
+
+        const startDate = new Date(log.startTime).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+        const endDate = new Date(log.endTime).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        document.getElementById('deleteSessionInfo').innerHTML = `
+            <p class="font-medium text-gray-800 mb-1">${this.escapeHtml(log.zoneName)}</p>
+            <p>${startDate} → ${endDate}</p>
+            <p class="mt-1 font-bold text-cyan-600">${this.getFormattedDuration(log.durationMs)}</p>
+        `;
+
+        document.getElementById('deleteSessionModal').classList.remove('hidden');
+    },
+
+    hideDeleteSessionModal() {
+        document.getElementById('deleteSessionModal').classList.add('hidden');
+        this.deletingSessionId = null;
+    },
+
+    confirmDeleteSession() {
+        const logId = this.deletingSessionId;
+        if (!logId) return;
+
+        const log = this.logs.find(l => l.id === logId);
+        const zoneName = log ? log.zoneName : '';
+
+        this.logs = this.logs.filter(l => l.id !== logId);
+        this.saveLogs();
+        this.hideDeleteSessionModal();
+        this.renderZones();
+        if (this.currentTab === 'calendar') {
+            this.renderCalendar();
+            this.renderZoneTotals();
+        }
+        this.showToast(`Session deleted from "${zoneName}"`);
+    },
+
+    // ── Rename Zone Modals ────────────────────────────────
+    renamingZoneId: null,
+
+    showRenameZoneModal(zoneId) {
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (!zone) return;
+
+        this.renamingZoneId = zoneId;
+        document.getElementById('renameZoneName').value = zone.name;
+        document.getElementById('renameZoneModal').classList.remove('hidden');
+        setTimeout(() => {
+            const input = document.getElementById('renameZoneName');
+            input.focus();
+            input.select();
+        }, 200);
+    },
+
+    hideRenameZoneModal() {
+        document.getElementById('renameZoneModal').classList.add('hidden');
+        this.renamingZoneId = null;
+    },
+
+    saveRenameZone() {
+        const zoneId = this.renamingZoneId;
+        if (!zoneId) return;
+
+        const newName = document.getElementById('renameZoneName').value.trim();
+        if (!newName) return;
+
+        this.renameZone(zoneId, newName);
+        this.hideRenameZoneModal();
+    },
+
+    // ── Rendering: Zones ───────────────────────────────────
+    renderZones() {
+        const container = document.getElementById('zonesList');
+        const emptyEl = document.getElementById('emptyZones');
+
+        if (this.zones.length === 0) {
+            container.innerHTML = '';
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        emptyEl.classList.add('hidden');
+
+        container.innerHTML = this.zones.map(zone => {
+            const isActive = !!this.activeTimers[zone.id];
+            let timerState = null;
+            if (isActive) {
+                timerState = this.activeTimers[zone.id];
+            }
+
+            // Check if paused
+            const isPaused = timerState && timerState.pausedDuration !== undefined && timerState.pausedDuration > 0;
+
+            // Get past sessions for this zone, sorted by start time descending
+            const zoneLogs = this.logs.filter(l => l.zoneId === zone.id).sort((a, b) => b.startTime - a.startTime);
+            const hasHistory = zoneLogs.length > 0;
+
+            return `
+                <div class="zone-card bg-white rounded-2xl shadow-sm p-4 ${isActive ? 'ring-2 ring-cyan-400' : ''}">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? 'bg-cyan-100' : 'bg-gray-100'}">
+                                <svg class="w-5 h-5 ${isActive ? 'text-cyan-600' : 'text-gray-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800">${this.escapeHtml(zone.name)}</h3>
+                                ${isActive ? '<span class="text-xs text-cyan-600 font-medium">● Active</span>' : ''}
+                                ${hasHistory ? `<span class="text-xs text-gray-400 ml-2">(${zoneLogs.length} session${zoneLogs.length !== 1 ? 's' : ''})</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="app.showRenameZoneModal('${zone.id}')" class="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition" title="Rename zone">
+                                <svg class="w-5 h-5 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button onclick="app.deleteZone('${zone.id}')" class="p-2 rounded-lg hover:bg-red-50 active:bg-red-100 transition" title="Delete zone">
+                                <svg class="w-5 h-5 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    ${isActive ? `
+                        <div class="mb-3 bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-500 mb-1 font-medium">${isPaused ? 'PAUSED' : 'ELAPSED TIME'}</p>
+                            <p id="zoneTimer_${zone.id}" class="timer-display text-2xl font-bold text-cyan-600">${this.getFormattedDuration(this.getElapsedMs(zone.id))}</p>
+                        </div>
+                    ` : ''}
+
+                    ${hasHistory ? `
+                        <button onclick="app.toggleSessions('${zone.id}')" id="sessionsToggle_${zone.id}" class="w-full flex items-center justify-between py-2 mb-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition">
+                            <span>Show Sessions</span>
+                            <svg id="sessionsArrow_${zone.id}" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="sessionsList_${zone.id}" class="hidden space-y-2 mb-3">
+                            ${zoneLogs.map(log => {
+                                const startDate = new Date(log.startTime);
+                                const endDate = new Date(log.endTime);
+                                return `
+                                    <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3 fade-in">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-700 truncate">${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                                            <p class="text-xs text-gray-400">${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} → ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                                        </div>
+                                        <span class="text-sm font-bold text-cyan-600 mr-3 whitespace-nowrap">${this.getFormattedDuration(log.durationMs)}</span>
+                                        <div class="flex items-center gap-1 ml-2">
+                                            <button onclick="app.showEditSessionModal('${log.id}')" class="p-1.5 rounded-lg hover:bg-blue-50 active:bg-blue-100 transition" title="Edit">
+                                                <svg class="w-4 h-4 text-gray-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                            <button onclick="app.showDeleteSessionModal('${log.id}')" class="p-1.5 rounded-lg hover:bg-red-50 active:bg-red-100 transition" title="Delete">
+                                                <svg class="w-4 h-4 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="flex gap-2">
+                        ${!isActive ? `
+                            <button onclick="app.startTimer('${zone.id}')"
+                                class="btn-action flex-1 bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600 flex items-center justify-center gap-2 text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                Start
+                            </button>
+                        ` : isPaused ? `
+                            <button onclick="app.resumeTimer('${zone.id}')"
+                                class="btn-action flex-1 bg-green-500 text-white py-3 rounded-xl shadow-md active:bg-green-600 flex items-center justify-center gap-2 text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                Resume
+                            </button>
+                        ` : `
+                            <button onclick="app.pauseTimer('${zone.id}')"
+                                class="btn-action flex-1 bg-yellow-500 text-white py-3 rounded-xl shadow-md active:bg-yellow-600 flex items-center justify-center gap-2 text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                Pause
+                            </button>
+                        `}
+                        ${isActive ? `
+                            <button onclick="app.stopTimer('${zone.id}')"
+                                class="btn-action flex-1 bg-red-500 text-white py-3 rounded-xl shadow-md active:bg-red-600 flex items-center justify-center gap-2 text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                                Stop
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    // ── Rendering: Calendar ────────────────────────────────
+    renderCalendar() {
+        const year = this.calendarDate.getFullYear();
+        const month = this.calendarDate.getMonth();
+        const today = new Date();
+
+        document.getElementById('calendarMonthYear').textContent =
+            new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Build set of dates that have watering logs
+        const wateredDates = {};
+        for (const log of this.logs) {
+            const d = new Date(log.startTime);
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                const day = d.getDate();
+                if (!wateredDates[day]) wateredDates[day] = 0;
+                wateredDates[day] += log.durationMs;
+            }
+        }
+
+        let html = '';
+
+        // Empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            html += '<div class="calendar-day"></div>';
+        }
+
+        // Day cells
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+            const hasWater = !!wateredDates[day];
+            let classes = 'calendar-day';
+            if (hasWater) classes += ' has-water';
+            if (isToday) classes += ' today';
+
+            html += `<div class="${classes}">${day}</div>`;
+        }
+
+        document.getElementById('calendarGrid').innerHTML = html;
+    },
+
+    changeMonth(delta) {
+        this.calendarDate.setMonth(this.calendarDate.getMonth() + delta);
+        this.renderCalendar();
+        this.renderZoneTotals();
+    },
+
+    renderZoneTotals() {
+        const year = this.calendarDate.getFullYear();
+        const month = this.calendarDate.getMonth();
+
+        // Filter logs for current viewed month
+        const monthLogs = this.logs.filter(log => {
+            const d = new Date(log.startTime);
+            return d.getFullYear() === year && d.getMonth() === month;
+        });
+
+        // Group by zone
+        const totals = {};
+        let grandTotal = 0;
+        for (const log of monthLogs) {
+            if (!totals[log.zoneName]) totals[log.zoneName] = 0;
+            totals[log.zoneName] += log.durationMs;
+            grandTotal += log.durationMs;
+        }
+
+        const container = document.getElementById('zoneTotals');
+        const emptyEl = document.getElementById('emptyTotals');
+
+        if (Object.keys(totals).length === 0) {
+            container.innerHTML = '';
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        emptyEl.classList.add('hidden');
+
+        // Sort by total time descending
+        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+
+        container.innerHTML = `
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 mb-2">
+                <span class="text-sm font-medium text-gray-500">Total for month</span>
+                <span class="font-bold text-cyan-600">${this.getFormattedDuration(grandTotal)}</span>
+            </div>
+        ` + sorted.map(([name, ms]) => {
+            const count = monthLogs.filter(l => l.zoneName === name).length;
+            return `
+                <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">${this.escapeHtml(name)}</span>
+                        <span class="text-xs text-gray-400 ml-2">(${count} session${count !== 1 ? 's' : ''})</span>
+                    </div>
+                    <span class="font-bold text-sm text-gray-800">${this.getFormattedDuration(ms)}</span>
+                </div>
+            `;
+        }).join('');
+    },
+
+    // ── Rendering: Banner ──────────────────────────────────
+    updateBanner() {
+        const banner = document.getElementById('activeTimerBanner');
+        const activeIds = Object.keys(this.activeTimers);
+
+        if (activeIds.length === 0) {
+            banner.classList.add('hidden');
+            return;
+        }
+
+        banner.classList.remove('hidden');
+
+        // Show first active zone
+        const zoneId = activeIds[0];
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (zone) {
+            document.getElementById('activeTimerZone').textContent = zone.name;
+        }
+    },
+
+    // ── Rendering: All ─────────────────────────────────────
+    render() {
+        this.renderZones();
+        this.updateBanner();
+        this.renderCalendar();
+        this.renderZoneTotals();
+    },
+
+    // ── Tab Switching ──────────────────────────────────────
+    switchTab(tab) {
+        this.currentTab = tab;
+
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+
+        document.querySelectorAll('.tab-nav').forEach(el => el.classList.remove('active'));
+        document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+
+        if (tab === 'calendar') {
+            this.renderCalendar();
+            this.renderZoneTotals();
+        }
+    },
+
+    // ── Modals ─────────────────────────────────────────────
+    showAddZoneModal() {
+        document.getElementById('addZoneModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('newZoneName').focus(), 200);
+    },
+    hideAddZoneModal() {
+        document.getElementById('addZoneModal').classList.add('hidden');
+    },
+    showSettings() {
+        document.getElementById('settingsModal').classList.remove('hidden');
+    },
+    hideSettings() {
+        document.getElementById('settingsModal').classList.add('hidden');
+    },
+
+    // ── Export / Import ────────────────────────────────────
+    exportData() {
+        const data = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            zones: this.zones,
+            logs: this.logs
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lawn_water_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast('Data exported successfully');
+    },
+
+    importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+
+                if (!data.zones || !data.logs) {
+                    throw new Error('Invalid format');
+                }
+
+                // Confirm merge or replace
+                const existingZones = this.zones.length;
+                const existingLogs = this.logs.length;
+
+                let merged = true;
+                if (existingZones > 0 || existingLogs > 0) {
+                    merged = confirm(
+                        `You have ${existingZones} zones and ${existingLogs} logs.\n\n` +
+                        'OK = Merge with existing data\n' +
+                        'Cancel = Replace all data'
+                    );
+                }
+
+                if (merged) {
+                    // Merge zones (avoid duplicates by id)
+                    const existingIds = new Set(this.zones.map(z => z.id));
+                    for (const zone of data.zones) {
+                        if (!existingIds.has(zone.id)) this.zones.push(zone);
+                    }
+
+                    // Merge logs (avoid duplicates by id)
+                    const logIds = new Set(this.logs.map(l => l.id));
+                    for (const log of data.logs) {
+                        if (!logIds.has(log.id)) this.logs.push(log);
+                    }
+                } else {
+                    this.zones = data.zones;
+                    this.logs = data.logs;
+                }
+
+                this.saveZones();
+                this.saveLogs();
+                this.render();
+                this.hideSettings();
+                this.showToast(`Imported ${data.zones.length} zones, ${data.logs.length} logs`);
+            } catch (err) {
+                alert('Failed to import: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset file input
+    },
+
+    clearAllData() {
+        if (!confirm('Delete ALL zones and watering logs? This cannot be undone.')) return;
+        this.zones = [];
+        this.logs = [];
+        this.activeTimers = {};
+        this.saveZones();
+        this.saveLogs();
+        localStorage.removeItem(this.STORAGE_KEY_TIMERS);
+        this.render();
+        this.hideSettings();
+        this.showToast('All data cleared');
+    },
+
+    // ── Toast ──────────────────────────────────────────────
+    showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => toast.classList.add('hidden'), 3000);
+    },
+
+    // ── Utility ────────────────────────────────────────────
+    toDatetimeLocal(date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    },
+
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    },
+
+    // ── Timer Update Loop ──────────────────────────────────
+    startTimerLoop() {
+        setInterval(() => {
+            let needsRender = false;
+
+            for (const [zoneId, timer] of Object.entries(this.activeTimers)) {
+                const isPaused = timer.pausedDuration !== undefined && timer.pausedDuration > 0;
+                if (!isPaused) {
+                    // Update live display
+                    const el = document.getElementById('zoneTimer_' + zoneId);
+                    if (el) {
+                        el.textContent = this.getFormattedDuration(this.getElapsedMs(zoneId));
+                    }
+
+                    // Update banner
+                    const bannerEl = document.getElementById('activeTimerDuration');
+                    if (bannerEl && Object.keys(this.activeTimers).length === 1) {
+                        bannerEl.textContent = this.getFormattedDuration(this.getElapsedMs(zoneId));
+                    }
+                }
+            }
+        }, 500); // Update every 500ms for smooth display
+    },
+
+    // ── Init ───────────────────────────────────────────────
+    init() {
+        this.loadState();
+        this.render();
+        this.startTimerLoop();
+
+        // Handle Enter key in modals
+        document.getElementById('newZoneName').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.addZone();
+        });
+
+        document.getElementById('renameZoneName').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.saveRenameZone();
+        });
+
+        // Update duration display when datetime inputs change
+        const startInput = document.getElementById('editSessionStart');
+        const endInput = document.getElementById('editSessionEnd');
+        startInput.addEventListener('change', () => this.updateEditDuration());
+        endInput.addEventListener('change', () => this.updateEditDuration());
+
+        // Before unload: save any running timers as completed if needed
+        window.addEventListener('beforeunload', () => {
+            // Don't auto-stop timers on close — they persist via localStorage
+            // This way resuming works across sessions
+        });
+    }
+};
+
+// Start the app
+app.init();
+</script>
+</body>
+</html>

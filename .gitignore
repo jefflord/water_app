@@ -1,0 +1,10 @@
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local storage backups (browser-generated)
+lawn_water_backup_*.json
