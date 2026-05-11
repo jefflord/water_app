@@ -77,6 +77,54 @@
             to { opacity: 1; }
         }
 
+        /* Alarm animations */
+        @keyframes alarmFlash {
+            0%, 100% { background-color: #fef3c7; }
+            50% { background-color: #fbbf24; }
+        }
+        .alarm-flash-bg {
+            animation: alarmFlash 0.8s ease-in-out infinite;
+        }
+
+        @keyframes alarmPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(251, 191, 36, 0); }
+        }
+        .alarm-pulse {
+            animation: alarmPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px) rotate(-1deg); }
+            75% { transform: translateX(4px) rotate(1deg); }
+        }
+        .alarm-shake {
+            animation: shake 0.3s ease-in-out infinite;
+        }
+
+        @keyframes bellRing {
+            0%, 100% { transform: rotate(0deg); }
+            15% { transform: rotate(15deg); }
+            30% { transform: rotate(-12deg); }
+            45% { transform: rotate(8deg); }
+            60% { transform: rotate(-5deg); }
+            75% { transform: rotate(2deg); }
+        }
+        .bell-ring {
+            animation: bellRing 1s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        /* Offset modal */
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .slide-down {
+            animation: slideDown 0.2s ease-out;
+        }
+
         nav a.active {
             color: #0ea5e9;
         }
@@ -200,27 +248,88 @@
             </div>
         </div>
 
+        <!-- Tab: Alarms -->
+        <div id="tabAlarms" class="tab-content">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Watering Alarms</h2>
+                <button onclick="app.showCreateAlarmModal()" class="btn-action bg-yellow-500 text-white px-4 py-2 text-sm shadow-md active:bg-yellow-600 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    New Alarm
+                </button>
+            </div>
+
+            <div id="alarmsList" class="space-y-3"></div>
+
+            <div id="emptyAlarms" class="hidden text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4 bell-ring" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <p class="text-gray-500 text-sm">No alarms set</p>
+                <p class="text-gray-400 text-xs mt-1">Tap "+ New Alarm" to schedule watering</p>
+            </div>
+
+            <!-- Upcoming section -->
+            <div id="upcomingAlarmsSection" class="hidden mt-6">
+                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Upcoming</h3>
+                <div id="upcomingAlarmsList" class="space-y-2"></div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Bottom Navigation -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
         <div class="max-w-lg mx-auto flex justify-around py-2">
-            <a href="#" onclick="app.switchTab('zones'); return false;" id="navZones" class="tab-nav active flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition">
+            <a href="#" onclick="app.switchTab('zones'); return false;" id="navZones" class="tab-nav active flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition relative">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
                 </svg>
                 <span class="text-xs font-medium">Zones</span>
             </a>
-            <a href="#" onclick="app.switchTab('calendar'); return false;" id="navCalendar" class="tab-nav flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition">
+            <a href="#" onclick="app.switchTab('calendar'); return false;" id="navCalendar" class="tab-nav flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition relative">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
                 <span class="text-xs font-medium">History</span>
             </a>
+            <a href="#" onclick="app.switchTab('alarms'); return false;" id="navAlarms" class="tab-nav flex flex-col items-center gap-1 px-6 py-1 text-gray-500 transition relative">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <span class="text-xs font-medium">Alarms</span>
+                <span id="alarmBadge" class="hidden absolute -top-0.5 right-2 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center"></span>
+            </a>
         </div>
     </nav>
 
-    <!-- Add Zone Modal -->
+    <!-- Active Alarm Banner (triggered alarm) -->
+    <div id="activeAlarmBanner" class="hidden fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-lg mx-auto bg-yellow-400 border-b-4 border-yellow-500 p-4 alarm-flash-bg">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <svg class="w-8 h-8 text-yellow-800 bell-ring flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-yellow-900 uppercase tracking-wide">Time to Water!</p>
+                        <p id="activeAlarmZone" class="text-lg font-extrabold text-yellow-950 truncate"></p>
+                    </div>
+                </div>
+                <div class="flex gap-2 flex-shrink-0">
+                    <button onclick="app.snoozeAlarm()" class="btn-action bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl shadow-md active:bg-yellow-800 text-sm font-bold whitespace-nowrap">
+                        Snooze 5m
+                    </button>
+                    <button onclick="app.dismissAlarm()" class="btn-action bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl shadow-md active:bg-green-800 text-sm font-bold whitespace-nowrap">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Alarm Modal -->
     <div id="addZoneModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
         <div class="absolute inset-0 bg-black/40" onclick="app.hideAddZoneModal()"></div>
         <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl">
@@ -230,6 +339,50 @@
             <div class="flex gap-3">
                 <button onclick="app.hideAddZoneModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
                 <button onclick="app.addZone()" class="flex-1 btn-action bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600">Add Zone</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Alarm Modal -->
+    <div id="createAlarmModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideCreateAlarmModal()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Schedule Watering Alarm</h3>
+
+            <!-- Zone selector -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">Zone</label>
+            <select id="alarmZone" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-yellow-500 focus:outline-none mb-4 bg-white">
+                <option value="">Select a zone...</option>
+            </select>
+
+            <!-- Date -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" id="alarmDate"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-yellow-500 focus:outline-none mb-4">
+
+            <!-- Time -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+            <input type="time" id="alarmTime" value="06:00"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-yellow-500 focus:outline-none mb-4">
+
+            <!-- Preview -->
+            <div class="mb-4 p-3 bg-yellow-50 rounded-xl flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700">Triggers at</span>
+                <span id="alarmPreview" class="font-bold text-yellow-700">—</span>
+            </div>
+
+            <!-- Quick presets -->
+            <p class="text-xs font-medium text-gray-500 mb-2">Quick set:</p>
+            <div class="flex gap-2 mb-4 flex-wrap">
+                <button onclick="app.setAlarmPreset('now')" class="px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-xs font-medium transition">Now + 1h</button>
+                <button onclick="app.setAlarmPreset('morning')" class="px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-xs font-medium transition">6:00 AM Today</button>
+                <button onclick="app.setAlarmPreset('evening')" class="px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-xs font-medium transition">7:00 PM Today</button>
+                <button onclick="app.setAlarmPreset('tomorrow')" class="px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-xs font-medium transition">Tomorrow 6 AM</button>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="app.hideCreateAlarmModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
+                <button onclick="app.createAlarm()" class="flex-1 btn-action bg-yellow-500 text-white py-3 rounded-xl shadow-md active:bg-yellow-600">Set Alarm</button>
             </div>
         </div>
     </div>
@@ -280,6 +433,76 @@
             <div class="flex gap-3">
                 <button onclick="app.hideDeleteSessionModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
                 <button onclick="app.confirmDeleteSession()" class="flex-1 btn-action bg-red-500 text-white py-3 rounded-xl shadow-md active:bg-red-600">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Timer Offset Modal -->
+    <div id="startTimerModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" onclick="app.hideStartTimerModal()"></div>
+        <div class="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 slide-up shadow-xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-1" id="startTimerTitle">Start Watering</h3>
+            <p class="text-sm text-gray-500 mb-4">When did you start?</p>
+
+            <!-- Quick presets -->
+            <div class="grid grid-cols-4 gap-2 mb-4">
+                <button onclick="app.setOffsetPreset(0)" id="offsetNow" class="px-3 py-2 bg-cyan-500 text-white rounded-xl text-sm font-bold shadow-md active:bg-cyan-600 transition">Now</button>
+                <button onclick="app.setOffsetPreset(1)" id="offset1min" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium active:bg-gray-300 transition">1m ago</button>
+                <button onclick="app.setOffsetPreset(5)" id="offset5min" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium active:bg-gray-300 transition">5m ago</button>
+                <button onclick="app.setOffsetPreset(10)" id="offset10min" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium active:bg-gray-300 transition">10m ago</button>
+            </div>
+
+            <!-- Custom offset -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom (minutes ago)</label>
+            <input type="number" id="customOffset" min="0" max="1440" placeholder="e.g., 3"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none mb-4">
+
+            <!-- Stop alarm setting -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">Stop reminder (optional)</label>
+            <div class="flex gap-2 mb-4">
+                <select id="stopAlarmDuration" class="flex-1 px-3 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none bg-white">
+                    <option value="0">No reminder</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30" selected>30 minutes (default)</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">1 hour</option>
+                </select>
+            </div>
+
+            <!-- Preview -->
+            <div class="mb-4 p-3 bg-gray-50 rounded-xl space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Start time</span>
+                    <span id="startTimerPreview" class="font-bold text-cyan-600">Now</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="app.hideStartTimerModal()" class="flex-1 btn-action bg-gray-100 text-gray-700 py-3 rounded-xl active:bg-gray-200">Cancel</button>
+                <button onclick="app.confirmStartTimer()" class="flex-1 btn-action bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600">Start Timer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stop Alarm Banner -->
+    <div id="stopAlarmBanner" class="hidden fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-lg mx-auto bg-red-500 border-b-4 border-red-600 p-4 alarm-flash-bg">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <svg class="w-8 h-8 text-white bell-ring flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-white uppercase tracking-wide">Time to Stop!</p>
+                        <p id="stopAlarmZone" class="text-lg font-extrabold text-white truncate"></p>
+                    </div>
+                </div>
+                <div class="flex gap-2 flex-shrink-0">
+                    <button onclick="app.dismissStopAlarm()" class="btn-action bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl shadow-md active:bg-green-800 text-sm font-bold whitespace-nowrap">
+                        Stopped
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -335,7 +558,8 @@ const app = {
     // ── State ──────────────────────────────────────────────
     zones: [],
     logs: [],
-    activeTimers: {},   // { zoneId: { startTime, pausedDuration } }
+    activeTimers: {},   // { zoneId: { startTime, pausedDuration, cumulativeMs, offsetMs, stopAlarmMinutes } }
+    alarms: [],         // [{ id, zoneId, zoneName, triggerTime }]
     currentTab: 'zones',
     calendarDate: new Date(),
 
@@ -343,6 +567,7 @@ const app = {
     STORAGE_KEY_ZONES: 'lawn_water_zones',
     STORAGE_KEY_LOGS: 'lawn_water_logs',
     STORAGE_KEY_TIMERS: 'lawn_water_active_timers',
+    STORAGE_KEY_ALARMS: 'lawn_water_alarms',
 
     saveZones() {
         localStorage.setItem(this.STORAGE_KEY_ZONES, JSON.stringify(this.zones));
@@ -353,39 +578,39 @@ const app = {
     saveActiveTimers() {
         const timers = {};
         for (const [id, timer] of Object.entries(this.activeTimers)) {
-            timers[id] = { startTime: timer.startTime, pausedDuration: timer.pausedDuration };
+            timers[id] = {
+                startTime: timer.startTime,
+                pausedDuration: timer.pausedDuration,
+                cumulativeMs: timer.cumulativeMs,
+                offsetMs: timer.offsetMs || 0,
+                stopAlarmMinutes: timer.stopAlarmMinutes || 0
+            };
         }
         localStorage.setItem(this.STORAGE_KEY_TIMERS, JSON.stringify(timers));
+    },
+
+    saveAlarms() {
+        localStorage.setItem(this.STORAGE_KEY_ALARMS, JSON.stringify(this.alarms));
     },
 
     loadState() {
         try {
             this.zones = JSON.parse(localStorage.getItem(this.STORAGE_KEY_ZONES)) || [];
             this.logs = JSON.parse(localStorage.getItem(this.STORAGE_KEY_LOGS)) || [];
-            const savedTimers = JSON.parse(localStorage.getItem(this.STORAGE_KEY_TIMERS)) || {};
+            this.alarms = JSON.parse(localStorage.getItem(this.STORAGE_KEY_ALARMS)) || [];
+
+            // Clean up alarms for deleted zones
+            const zoneIds = new Set(this.zones.map(z => z.id));
+            this.alarms = this.alarms.filter(a => zoneIds.has(a.zoneId) || a.zoneName);
 
             // Restore active timers (account for time while tab was closed)
-            for (const [id, timer] of Object.entries(savedTimers)) {
-                if (timer.startTime && !timer.pausedDuration) {
-                    this.activeTimers[id] = {
-                        startTime: timer.startTime,
-                        pausedDuration: 0
-                    };
-                } else if (timer.startTime && timer.pausedDuration !== undefined) {
-                    this.activeTimers[id] = timer;
-                }
-            }
-
-            // Clean up timers for deleted zones
-            const zoneIds = new Set(this.zones.map(z => z.id));
-            for (const id of Object.keys(this.activeTimers)) {
-                if (!zoneIds.has(id)) delete this.activeTimers[id];
-            }
+            this.loadActiveTimers();
         } catch (e) {
             console.error('Failed to load state:', e);
             this.zones = [];
             this.logs = [];
             this.activeTimers = {};
+            this.alarms = [];
         }
     },
 
@@ -393,14 +618,20 @@ const app = {
     getElapsedMs(zoneId) {
         const timer = this.activeTimers[zoneId];
         if (!timer) return 0;
+
+        let baseDuration;
         if (timer.pausedDuration !== undefined && timer.pausedDuration > 0) {
             // Paused: use stored cumulative duration
-            return timer.cumulativeMs || 0;
+            baseDuration = timer.cumulativeMs || 0;
+        } else {
+            // Running: calculate from start + any previously accumulated time
+            const running = Date.now() - timer.startTime;
+            const prevCumulative = timer.cumulativeMs || 0;
+            baseDuration = prevCumulative + running;
         }
-        // Running: calculate from start + any previously accumulated time
-        const running = Date.now() - timer.startTime;
-        const prevCumulative = timer.cumulativeMs || 0;
-        return prevCumulative + running;
+
+        // Add offset (negative offset means started in the past)
+        return baseDuration + (timer.offsetMs || 0);
     },
 
     getFormattedDuration(ms) {
@@ -429,14 +660,16 @@ const app = {
 
     pauseTimer(zoneId) {
         const timer = this.activeTimers[zoneId];
-        if (!timer || timer.pausedDuration !== undefined && timer.pausedDuration > 0) return;
+        if (!timer || (timer.pausedDuration !== undefined && timer.pausedDuration > 0)) return;
 
         const runningMs = Date.now() - timer.startTime;
         const prevCumulative = timer.cumulativeMs || 0;
         this.activeTimers[zoneId] = {
             startTime: timer.startTime,
             pausedDuration: prevCumulative + runningMs,
-            cumulativeMs: prevCumulative + runningMs
+            cumulativeMs: prevCumulative + runningMs,
+            offsetMs: timer.offsetMs || 0,
+            stopAlarmMinutes: timer.stopAlarmMinutes || 0
         };
         this.saveActiveTimers();
         this.renderZones();
@@ -450,64 +683,129 @@ const app = {
         this.activeTimers[zoneId] = {
             startTime: Date.now(),
             pausedDuration: 0,
-            cumulativeMs: timer.cumulativeMs || 0
+            cumulativeMs: timer.cumulativeMs || 0,
+            offsetMs: timer.offsetMs || 0,
+            stopAlarmMinutes: timer.stopAlarmMinutes || 0
         };
         this.saveActiveTimers();
         this.renderZones();
         this.updateBanner();
     },
 
-    stopTimer(zoneId) {
-        const timer = this.activeTimers[zoneId];
-        if (!timer) return;
+    // ── Start Timer with Offset / Stop Alarm ───────────────
+    startTimerZoneId: null,
+    currentOffsetMs: 0,
 
-        let totalMs;
-        if (timer.pausedDuration !== undefined && timer.pausedDuration > 0) {
-            totalMs = timer.cumulativeMs || 0;
-        } else {
-            totalMs = (timer.cumulativeMs || 0) + (Date.now() - timer.startTime);
-        }
-
-        if (totalMs < 1000) {
-            delete this.activeTimers[zoneId];
-            this.saveActiveTimers();
-            this.renderZones();
-            this.updateBanner();
-            return;
-        }
-
+    showStartTimerModal(zoneId) {
+        this.startTimerZoneId = zoneId;
         const zone = this.zones.find(z => z.id === zoneId);
-        if (!zone) {
-            delete this.activeTimers[zoneId];
-            this.saveActiveTimers();
-            this.renderZones();
-            this.updateBanner();
-            return;
-        }
+        document.getElementById('startTimerTitle').textContent = `Start Watering "${zone ? zone.name : ''}"`;
 
-        // Create log entry
-        const log = {
-            id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-            zoneId: zoneId,
-            zoneName: zone.name,
-            startTime: timer.startTime,
-            endTime: Date.now(),
-            durationMs: totalMs
+        // Reset to "Now" preset
+        this.currentOffsetMs = 0;
+        this.setActiveOffsetPreset(0);
+        document.getElementById('customOffset').value = '';
+        document.getElementById('stopAlarmDuration').value = '30';
+        this.updateStartTimerPreview();
+        document.getElementById('startTimerModal').classList.remove('hidden');
+    },
+
+    hideStartTimerModal() {
+        document.getElementById('startTimerModal').classList.add('hidden');
+        this.startTimerZoneId = null;
+    },
+
+    setOffsetPreset(minutes) {
+        this.currentOffsetMs = minutes * 60 * 1000;
+        this.setActiveOffsetPreset(minutes);
+        document.getElementById('customOffset').value = '';
+        this.updateStartTimerPreview();
+    },
+
+    setActiveOffsetPreset(minutes) {
+        const presets = ['offsetNow', 'offset1min', 'offset5min', 'offset10min'];
+        presets.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.classList.remove('bg-cyan-500', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            }
+        });
+
+        const activeMap = { 0: 'offsetNow', 1: 'offset1min', 5: 'offset5min', 10: 'offset10min' };
+        const activeId = activeMap[minutes];
+        if (activeId) {
+            const btn = document.getElementById(activeId);
+            if (btn) {
+                btn.classList.remove('bg-gray-100', 'text-gray-700');
+                btn.classList.add('bg-cyan-500', 'text-white');
+            }
+        }
+    },
+
+    updateStartTimerPreview() {
+        let previewText;
+        if (this.currentOffsetMs === 0) {
+            previewText = 'Now';
+        } else {
+            const startDate = new Date(Date.now() - this.currentOffsetMs);
+            previewText = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        document.getElementById('startTimerPreview').textContent = previewText;
+    },
+
+    confirmStartTimer() {
+        const zoneId = this.startTimerZoneId;
+        if (!zoneId) return;
+
+        const stopAlarmMinutes = parseInt(document.getElementById('stopAlarmDuration').value) || 0;
+
+        // Calculate actual start time (now - offset)
+        const actualStartTime = Date.now() - this.currentOffsetMs;
+
+        this.activeTimers[zoneId] = {
+            startTime: actualStartTime,
+            pausedDuration: 0,
+            cumulativeMs: 0,
+            offsetMs: this.currentOffsetMs,
+            stopAlarmMinutes: stopAlarmMinutes,
+            stopAlarmTriggered: false
         };
 
-        this.logs.push(log);
-        delete this.activeTimers[zoneId];
-        this.saveLogs();
         this.saveActiveTimers();
+        this.hideStartTimerModal();
         this.renderZones();
         this.updateBanner();
-        this.showToast(`Stopped watering "${zone.name}" — ${this.getFormattedDuration(totalMs)}`);
 
-        // Refresh calendar if visible
-        if (this.currentTab === 'calendar') {
-            this.renderCalendar();
-            this.renderZoneTotals();
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (this.currentOffsetMs > 0) {
+            this.showToast(`Started "${zone ? zone.name : ''}" ${Math.round(this.currentOffsetMs / 60000)} minutes ago`);
+        } else {
+            this.showToast(`Started watering "${zone ? zone.name : ''}"`);
         }
+
+        if (stopAlarmMinutes > 0) {
+            this.showToast(`Reminder in ${stopAlarmMinutes} min to stop watering`);
+        }
+    },
+
+    // ── Stop Alarm Handling ────────────────────────────────
+    activeStopAlarmZoneId: null,
+
+    dismissStopAlarm() {
+        if (this.activeStopAlarmZoneId) {
+            // Mark as triggered so it doesn't fire again until next start
+            const timer = this.activeTimers[this.activeStopAlarmZoneId];
+            if (timer) {
+                timer.stopAlarmTriggered = true;
+                this.saveActiveTimers();
+            }
+        }
+
+        this.stopAlarmSound();
+        document.getElementById('stopAlarmBanner').classList.add('hidden');
+        document.body.classList.remove('alarm-flash-bg');
+        this.activeStopAlarmZoneId = null;
     },
 
     // ── Zone Management ────────────────────────────────────
@@ -603,138 +901,6 @@ const app = {
         }
     },
 
-    // Edit session state
-    editingSessionId: null,
-
-    showEditSessionModal(logId) {
-        const log = this.logs.find(l => l.id === logId);
-        if (!log) return;
-
-        this.editingSessionId = logId;
-
-        document.getElementById('editSessionInfo').innerHTML = `
-            <p class="text-sm font-medium text-cyan-700">${this.escapeHtml(log.zoneName)}</p>
-            <p class="text-xs text-gray-500 mt-1">Duration: ${this.getFormattedDuration(log.durationMs)}</p>
-        `;
-
-        // Format datetime-local value from timestamp
-        const startInput = document.getElementById('editSessionStart');
-        const endInput = document.getElementById('editSessionEnd');
-
-        startInput.value = this.toDatetimeLocal(new Date(log.startTime));
-        endInput.value = this.toDatetimeLocal(new Date(log.endTime));
-
-        // Update duration display
-        this.updateEditDuration();
-
-        document.getElementById('editSessionModal').classList.remove('hidden');
-    },
-
-    hideEditSessionModal() {
-        document.getElementById('editSessionModal').classList.add('hidden');
-        this.editingSessionId = null;
-    },
-
-    updateEditDuration() {
-        const startVal = document.getElementById('editSessionStart').value;
-        const endVal = document.getElementById('editSessionEnd').value;
-
-        if (startVal && endVal) {
-            const diff = new Date(endVal).getTime() - new Date(startVal).getTime();
-            document.getElementById('editSessionDuration').textContent = this.getFormattedDuration(Math.max(0, diff));
-        } else {
-            document.getElementById('editSessionDuration').textContent = '—';
-        }
-    },
-
-    saveEditSession() {
-        const logId = this.editingSessionId;
-        if (!logId) return;
-
-        const startVal = document.getElementById('editSessionStart').value;
-        const endVal = document.getElementById('editSessionEnd').value;
-
-        if (!startVal || !endVal) {
-            alert('Please provide both start and end dates.');
-            return;
-        }
-
-        const newStart = new Date(startVal).getTime();
-        const newEnd = new Date(endVal).getTime();
-
-        if (newEnd <= newStart) {
-            alert('End time must be after start time.');
-            return;
-        }
-
-        const log = this.logs.find(l => l.id === logId);
-        if (!log) return;
-
-        const oldDuration = log.durationMs;
-        log.startTime = newStart;
-        log.endTime = newEnd;
-        log.durationMs = newEnd - newStart;
-
-        this.saveLogs();
-        this.hideEditSessionModal();
-        this.renderZones();
-        if (this.currentTab === 'calendar') {
-            this.renderCalendar();
-            this.renderZoneTotals();
-        }
-        this.showToast(`Session updated (${this.getFormattedDuration(oldDuration)} → ${this.getFormattedDuration(log.durationMs)})`);
-    },
-
-    // Delete session state
-    deletingSessionId: null,
-
-    showDeleteSessionModal(logId) {
-        const log = this.logs.find(l => l.id === logId);
-        if (!log) return;
-
-        this.deletingSessionId = logId;
-
-        const startDate = new Date(log.startTime).toLocaleString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-        const endDate = new Date(log.endTime).toLocaleString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-
-        document.getElementById('deleteSessionInfo').innerHTML = `
-            <p class="font-medium text-gray-800 mb-1">${this.escapeHtml(log.zoneName)}</p>
-            <p>${startDate} → ${endDate}</p>
-            <p class="mt-1 font-bold text-cyan-600">${this.getFormattedDuration(log.durationMs)}</p>
-        `;
-
-        document.getElementById('deleteSessionModal').classList.remove('hidden');
-    },
-
-    hideDeleteSessionModal() {
-        document.getElementById('deleteSessionModal').classList.add('hidden');
-        this.deletingSessionId = null;
-    },
-
-    confirmDeleteSession() {
-        const logId = this.deletingSessionId;
-        if (!logId) return;
-
-        const log = this.logs.find(l => l.id === logId);
-        const zoneName = log ? log.zoneName : '';
-
-        this.logs = this.logs.filter(l => l.id !== logId);
-        this.saveLogs();
-        this.hideDeleteSessionModal();
-        this.renderZones();
-        if (this.currentTab === 'calendar') {
-            this.renderCalendar();
-            this.renderZoneTotals();
-        }
-        this.showToast(`Session deleted from "${zoneName}"`);
-    },
-
     // ── Rename Zone Modals ────────────────────────────────
     renamingZoneId: null,
 
@@ -766,6 +932,706 @@ const app = {
 
         this.renameZone(zoneId, newName);
         this.hideRenameZoneModal();
+    },
+
+    // ── Stop Timer ────────────────────────────────────────
+    stopTimer(zoneId) {
+        const timer = this.activeTimers[zoneId];
+        if (!timer) return;
+
+        let totalMs;
+        if (timer.pausedDuration !== undefined && timer.pausedDuration > 0) {
+            totalMs = timer.cumulativeMs || 0;
+        } else {
+            totalMs = (timer.cumulativeMs || 0) + (Date.now() - timer.startTime);
+        }
+
+        if (totalMs < 1000) {
+            delete this.activeTimers[zoneId];
+            this.saveActiveTimers();
+            this.renderZones();
+            this.updateBanner();
+            return;
+        }
+
+        const zone = this.zones.find(z => z.id === zoneId);
+        if (!zone) {
+            delete this.activeTimers[zoneId];
+            this.saveActiveTimers();
+            this.renderZones();
+            this.updateBanner();
+            return;
+        }
+
+        // Create log entry
+        const log = {
+            id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            zoneId: zoneId,
+            zoneName: zone.name,
+            startTime: timer.startTime,
+            endTime: Date.now(),
+            durationMs: totalMs
+        };
+
+        this.logs.push(log);
+        delete this.activeTimers[zoneId];
+        this.saveLogs();
+        this.saveActiveTimers();
+        this.renderZones();
+        this.updateBanner();
+        this.showToast(`Stopped watering "${zone.name}" — ${this.getFormattedDuration(totalMs)}`);
+
+        // Refresh calendar if visible
+        if (this.currentTab === 'calendar') {
+            this.renderCalendar();
+            this.renderZoneTotals();
+        }
+    },
+
+    // ── Edit Session Modal ────────────────────────────────
+    editingSessionId: null,
+
+    showEditSessionModal(logId) {
+        const log = this.logs.find(l => l.id === logId);
+        if (!log) return;
+
+        this.editingSessionId = logId;
+
+        document.getElementById('editSessionInfo').innerHTML = `
+            <p class="text-sm font-medium text-cyan-700">${this.escapeHtml(log.zoneName)}</p>
+            <p class="text-xs text-gray-500 mt-1">Duration: ${this.getFormattedDuration(log.durationMs)}</p>
+        `;
+
+        const startInput = document.getElementById('editSessionStart');
+        const endInput = document.getElementById('editSessionEnd');
+        startInput.value = this.toDatetimeLocal(new Date(log.startTime));
+        endInput.value = this.toDatetimeLocal(new Date(log.endTime));
+        this.updateEditDuration();
+
+        document.getElementById('editSessionModal').classList.remove('hidden');
+    },
+
+    hideEditSessionModal() {
+        document.getElementById('editSessionModal').classList.add('hidden');
+        this.editingSessionId = null;
+    },
+
+    updateEditDuration() {
+        const startVal = document.getElementById('editSessionStart').value;
+        const endVal = document.getElementById('editSessionEnd').value;
+        if (startVal && endVal) {
+            const diff = new Date(endVal).getTime() - new Date(startVal).getTime();
+            document.getElementById('editSessionDuration').textContent = this.getFormattedDuration(Math.max(0, diff));
+        } else {
+            document.getElementById('editSessionDuration').textContent = '—';
+        }
+    },
+
+    saveEditSession() {
+        const logId = this.editingSessionId;
+        if (!logId) return;
+
+        const startVal = document.getElementById('editSessionStart').value;
+        const endVal = document.getElementById('editSessionEnd').value;
+        if (!startVal || !endVal) { alert('Please provide both start and end dates.'); return; }
+
+        const newStart = new Date(startVal).getTime();
+        const newEnd = new Date(endVal).getTime();
+        if (newEnd <= newStart) { alert('End time must be after start time.'); return; }
+
+        const log = this.logs.find(l => l.id === logId);
+        if (!log) return;
+
+        const oldDuration = log.durationMs;
+        log.startTime = newStart;
+        log.endTime = newEnd;
+        log.durationMs = newEnd - newStart;
+
+        this.saveLogs();
+        this.hideEditSessionModal();
+        this.renderZones();
+        if (this.currentTab === 'calendar') { this.renderCalendar(); this.renderZoneTotals(); }
+        this.showToast(`Session updated (${this.getFormattedDuration(oldDuration)} → ${this.getFormattedDuration(log.durationMs)})`);
+    },
+
+    // ── Delete Session Modal ──────────────────────────────
+    deletingSessionId: null,
+
+    showDeleteSessionModal(logId) {
+        const log = this.logs.find(l => l.id === logId);
+        if (!log) return;
+
+        this.deletingSessionId = logId;
+        const startDate = new Date(log.startTime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const endDate = new Date(log.endTime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        document.getElementById('deleteSessionInfo').innerHTML = `
+            <p class="font-medium text-gray-800 mb-1">${this.escapeHtml(log.zoneName)}</p>
+            <p>${startDate} → ${endDate}</p>
+            <p class="mt-1 font-bold text-cyan-600">${this.getFormattedDuration(log.durationMs)}</p>
+        `;
+
+        document.getElementById('deleteSessionModal').classList.remove('hidden');
+    },
+
+    hideDeleteSessionModal() {
+        document.getElementById('deleteSessionModal').classList.add('hidden');
+        this.deletingSessionId = null;
+    },
+
+    confirmDeleteSession() {
+        const logId = this.deletingSessionId;
+        if (!logId) return;
+        const log = this.logs.find(l => l.id === logId);
+        const zoneName = log ? log.zoneName : '';
+
+        this.logs = this.logs.filter(l => l.id !== logId);
+        this.saveLogs();
+        this.hideDeleteSessionModal();
+        this.renderZones();
+        if (this.currentTab === 'calendar') { this.renderCalendar(); this.renderZoneTotals(); }
+        this.showToast(`Session deleted from "${zoneName}"`);
+    },
+
+    // ── Settings Modal ────────────────────────────────────
+    showSettings() {
+        document.getElementById('settingsModal').classList.remove('hidden');
+    },
+    hideSettings() {
+        document.getElementById('settingsModal').classList.add('hidden');
+    },
+
+    // ── Export / Import ────────────────────────────────────
+    exportData() {
+        const data = { version: 1, exportedAt: new Date().toISOString(), zones: this.zones, logs: this.logs };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lawn_water_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast('Data exported successfully');
+    },
+
+    importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.zones || !data.logs) throw new Error('Invalid format');
+
+                const existingZones = this.zones.length;
+                const existingLogs = this.logs.length;
+                let merged = true;
+                if (existingZones > 0 || existingLogs > 0) {
+                    merged = confirm(`You have ${existingZones} zones and ${existingLogs} logs.\n\nOK = Merge with existing data\nCancel = Replace all data`);
+                }
+
+                if (merged) {
+                    const existingIds = new Set(this.zones.map(z => z.id));
+                    for (const zone of data.zones) { if (!existingIds.has(zone.id)) this.zones.push(zone); }
+                    const logIds = new Set(this.logs.map(l => l.id));
+                    for (const log of data.logs) { if (!logIds.has(log.id)) this.logs.push(log); }
+                } else {
+                    this.zones = data.zones;
+                    this.logs = data.logs;
+                }
+
+                this.saveZones();
+                this.saveLogs();
+                this.render();
+                this.hideSettings();
+                this.showToast(`Imported ${data.zones.length} zones, ${data.logs.length} logs`);
+            } catch (err) { alert('Failed to import: ' + err.message); }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    },
+
+    clearAllData() {
+        if (!confirm('Delete ALL zones and watering logs? This cannot be undone.')) return;
+        this.zones = [];
+        this.logs = [];
+        this.activeTimers = {};
+        this.alarms = [];
+        this.saveZones();
+        this.saveLogs();
+        localStorage.removeItem(this.STORAGE_KEY_TIMERS);
+        this.saveAlarms();
+        this.render();
+        this.hideSettings();
+        this.showToast('All data cleared');
+    },
+
+    // ── Alarms ─────────────────────────────────────────────
+    activeAlarmId: null,   // currently ringing alarm id
+    alarmAudioCtx: null,
+    alarmOscillator: null,
+    alarmInterval: null,
+
+    loadAlarms() {
+        this.alarms = JSON.parse(localStorage.getItem(this.STORAGE_KEY_ALARMS)) || [];
+        // Clean up alarms for deleted zones
+        const zoneIds = new Set(this.zones.map(z => z.id));
+        this.alarms = this.alarms.filter(a => zoneIds.has(a.zoneId) || a.zoneName);
+    },
+
+    loadActiveTimers() {
+        const savedTimers = JSON.parse(localStorage.getItem(this.STORAGE_KEY_TIMERS)) || {};
+
+        // Restore active timers (account for time while tab was closed)
+        for (const [id, timer] of Object.entries(savedTimers)) {
+            if (timer.startTime && !(timer.pausedDuration !== undefined && timer.pausedDuration > 0)) {
+                this.activeTimers[id] = {
+                    startTime: timer.startTime,
+                    pausedDuration: 0,
+                    cumulativeMs: timer.cumulativeMs || 0,
+                    offsetMs: timer.offsetMs || 0,
+                    stopAlarmMinutes: timer.stopAlarmMinutes || 0
+                };
+            } else if (timer.startTime && (timer.pausedDuration !== undefined)) {
+                this.activeTimers[id] = {
+                    startTime: timer.startTime,
+                    pausedDuration: timer.pausedDuration,
+                    cumulativeMs: timer.cumulativeMs || 0,
+                    offsetMs: timer.offsetMs || 0,
+                    stopAlarmMinutes: timer.stopAlarmMinutes || 0
+                };
+            }
+        }
+
+        // Clean up timers for deleted zones
+        const zoneIds = new Set(this.zones.map(z => z.id));
+        for (const id of Object.keys(this.activeTimers)) {
+            if (!zoneIds.has(id)) delete this.activeTimers[id];
+        }
+    },
+
+    showCreateAlarmModal() {
+        if (this.zones.length === 0) {
+            this.showToast('Add a zone first to create an alarm');
+            return;
+        }
+
+        // Populate zone selector
+        const select = document.getElementById('alarmZone');
+        select.innerHTML = '<option value="">Select a zone...</option>' +
+            this.zones.map(z => `<option value="${z.id}">${this.escapeHtml(z.name)}</option>`).join('');
+
+        // Set default date to today, time to 6 AM or next valid time
+        const now = new Date();
+        document.getElementById('alarmDate').value = this.toLocalDateString(now);
+        if (now.getHours() >= 23) {
+            document.getElementById('alarmTime').value = '06:00';
+            // Set date to tomorrow
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('alarmDate').value = this.toLocalDateString(tomorrow);
+        } else {
+            document.getElementById('alarmTime').value = '06:00';
+        }
+
+        this.updateAlarmPreview();
+        document.getElementById('createAlarmModal').classList.remove('hidden');
+    },
+
+    hideCreateAlarmModal() {
+        document.getElementById('createAlarmModal').classList.add('hidden');
+    },
+
+    setAlarmPreset(preset) {
+        const now = new Date();
+        let targetDate, targetTime;
+
+        switch (preset) {
+            case 'now':
+                // Now + 1 hour
+                targetDate = new Date(now);
+                targetDate.setHours(targetDate.getHours() + 1, 0, 0, 0);
+                document.getElementById('alarmDate').value = this.toLocalDateString(targetDate);
+                document.getElementById('alarmTime').value =
+                    String(targetDate.getHours()).padStart(2, '0') + ':' + String(targetDate.getMinutes()).padStart(2, '0');
+                break;
+            case 'morning':
+                targetDate = new Date(now);
+                if (now.getHours() >= 6) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+                document.getElementById('alarmDate').value = this.toLocalDateString(targetDate);
+                document.getElementById('alarmTime').value = '06:00';
+                break;
+            case 'evening':
+                targetDate = new Date(now);
+                if (now.getHours() >= 19) {
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+                document.getElementById('alarmDate').value = this.toLocalDateString(targetDate);
+                document.getElementById('alarmTime').value = '19:00';
+                break;
+            case 'tomorrow':
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('alarmDate').value = this.toLocalDateString(tomorrow);
+                document.getElementById('alarmTime').value = '06:00';
+                break;
+        }
+
+        this.updateAlarmPreview();
+    },
+
+    updateAlarmPreview() {
+        const dateVal = document.getElementById('alarmDate').value;
+        const timeVal = document.getElementById('alarmTime').value;
+        const zoneId = document.getElementById('alarmZone').value;
+
+        if (dateVal && timeVal) {
+            const trigger = new Date(dateVal + 'T' + timeVal);
+            const now = new Date();
+            let previewText = trigger.toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+            });
+
+            if (trigger <= now) {
+                previewText += ' <span class="text-red-500">(in the past)</span>';
+            } else {
+                const diff = trigger - now;
+                const hours = Math.floor(diff / 3600000);
+                const mins = Math.floor((diff % 3600000) / 60000);
+                if (hours > 0) {
+                    previewText += ` <span class="text-gray-400">(${hours}h ${mins}m from now)</span>`;
+                } else {
+                    previewText += ` <span class="text-gray-400">(${mins}m from now)</span>`;
+                }
+            }
+
+            document.getElementById('alarmPreview').innerHTML = previewText;
+        } else {
+            document.getElementById('alarmPreview').textContent = '—';
+        }
+    },
+
+    createAlarm() {
+        const zoneId = document.getElementById('alarmZone').value;
+        const dateVal = document.getElementById('alarmDate').value;
+        const timeVal = document.getElementById('alarmTime').value;
+
+        if (!zoneId) {
+            this.showToast('Please select a zone');
+            return;
+        }
+        if (!dateVal || !timeVal) {
+            this.showToast('Please set both date and time');
+            return;
+        }
+
+        const triggerTime = new Date(dateVal + 'T' + timeVal).getTime();
+        const now = Date.now();
+
+        if (triggerTime <= now) {
+            this.showToast('Alarm time must be in the future');
+            return;
+        }
+
+        const zone = this.zones.find(z => z.id === zoneId);
+        const alarm = {
+            id: 'alarm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            zoneId: zoneId,
+            zoneName: zone ? zone.name : 'Unknown',
+            triggerTime: triggerTime,
+            createdAt: now
+        };
+
+        this.alarms.push(alarm);
+        this.saveAlarms();
+        this.hideCreateAlarmModal();
+        this.renderAlarms();
+        this.showToast(`Alarm set for ${zone ? zone.name : ''} at ${new Date(triggerTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`);
+    },
+
+    deleteAlarm(alarmId) {
+        const alarm = this.alarms.find(a => a.id === alarmId);
+        if (!alarm) return;
+
+        // Stop ringing if this is the active alarm
+        if (this.activeAlarmId === alarmId) {
+            this.stopAlarmSound();
+            this.dismissAlarm();
+        }
+
+        this.alarms = this.alarms.filter(a => a.id !== alarmId);
+        this.saveAlarms();
+        this.renderAlarms();
+        this.showToast('Alarm deleted');
+    },
+
+    snoozeAlarm() {
+        if (!this.activeAlarmId) return;
+
+        const alarm = this.alarms.find(a => a.id === this.activeAlarmId);
+        if (alarm) {
+            // Update the existing alarm with new time instead of creating a duplicate
+            alarm.triggerTime = Date.now() + 5 * 60 * 1000;
+            delete alarm.dismissed;
+            this.saveAlarms();
+
+            this.stopAlarmSound();
+            this.activeAlarmId = null;
+
+            document.getElementById('activeAlarmBanner').classList.add('hidden');
+            document.body.classList.remove('alarm-flash-bg');
+
+            this.renderAlarms();
+            this.showToast('Snoozed for 5 minutes');
+        }
+    },
+
+    dismissAlarm() {
+        if (this.activeAlarmId) {
+            // Remove the triggered alarm
+            this.alarms = this.alarms.filter(a => a.id !== this.activeAlarmId);
+            this.saveAlarms();
+            this.renderAlarms();
+        }
+        this.stopAlarmSound();
+        this.activeAlarmId = null;
+
+        document.getElementById('activeAlarmBanner').classList.add('hidden');
+        document.body.classList.remove('alarm-flash-bg');
+    },
+
+    // ── Alarm Sound (Web Audio API) ────────────────────────
+    startAlarmSound() {
+        try {
+            if (!this.alarmAudioCtx) {
+                this.alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            const playBeep = () => {
+                if (!this.alarmAudioCtx || this.alarmAudioCtx.state === 'closed') return;
+
+                const osc = this.alarmAudioCtx.createOscillator();
+                const gain = this.alarmAudioCtx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.alarmAudioCtx.destination);
+
+                // Pleasant bell-like tone pattern
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, this.alarmAudioCtx.currentTime);
+                osc.frequency.setValueAtTime(1100, this.alarmAudioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(880, this.alarmAudioCtx.currentTime + 0.2);
+
+                gain.gain.setValueAtTime(0.3, this.alarmAudioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.alarmAudioCtx.currentTime + 0.4);
+
+                osc.start(this.alarmAudioCtx.currentTime);
+                osc.stop(this.alarmAudioCtx.currentTime + 0.4);
+            };
+
+            playBeep();
+            this.alarmInterval = setInterval(playBeep, 1500);
+        } catch (e) {
+            console.warn('Audio not available:', e);
+        }
+    },
+
+    stopAlarmSound() {
+        if (this.alarmInterval) {
+            clearInterval(this.alarmInterval);
+            this.alarmInterval = null;
+        }
+        try {
+            if (this.alarmOscillator) {
+                this.alarmOscillator.stop();
+                this.alarmOscillator = null;
+            }
+        } catch (e) {}
+    },
+
+    // ── Alarm Checker ──────────────────────────────────────
+    startAlarmChecker() {
+        setInterval(() => {
+            const now = Date.now();
+
+            // Check watering alarms
+            const triggered = this.alarms.find(a => a.triggerTime <= now && !a.dismissed);
+
+            if (triggered) {
+                // Mark as dismissed so it doesn't fire again
+                triggered.dismissed = true;
+                this.saveAlarms();
+
+                this.activeAlarmId = triggered.id;
+
+                const zone = this.zones.find(z => z.id === triggered.zoneId);
+                document.getElementById('activeAlarmZone').textContent = zone ? zone.name : triggered.zoneName;
+
+                // Show banner with flashing visuals
+                const banner = document.getElementById('activeAlarmBanner');
+                banner.classList.remove('hidden');
+                document.body.classList.add('alarm-flash-bg');
+
+                // Play sound (requires user interaction first)
+                this.startAlarmSound();
+
+                // Update badge
+                this.updateAlarmBadge();
+
+                // Request notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+
+                // Send desktop notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Lawn Water Alarm', {
+                        body: `Time to water ${zone ? zone.name : triggered.zoneName}!`,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💧</text></svg>'
+                    });
+                }
+
+                this.renderAlarms();
+            }
+
+            // Check stop alarms on active timers
+            for (const [zoneId, timer] of Object.entries(this.activeTimers)) {
+                if (!timer.stopAlarmMinutes || timer.stopAlarmTriggered) continue;
+
+                const elapsed = Date.now() - timer.startTime + (timer.cumulativeMs || 0);
+                const stopDuration = timer.stopAlarmMinutes * 60 * 1000;
+
+                // Check if we just crossed the threshold (within last second to avoid double-firing)
+                if (elapsed >= stopDuration && elapsed < stopDuration + 2000) {
+                    this.activeStopAlarmZoneId = zoneId;
+                    const zone = this.zones.find(z => z.id === zoneId);
+
+                    document.getElementById('stopAlarmZone').textContent = zone ? zone.name : 'Unknown';
+
+                    const banner = document.getElementById('stopAlarmBanner');
+                    banner.classList.remove('hidden');
+                    document.body.classList.add('alarm-flash-bg');
+
+                    this.startAlarmSound();
+
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('Stop Watering!', {
+                            body: `Time to turn off the water for ${zone ? zone.name : ''}!`,
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>'
+                        });
+                    }
+
+                    this.renderZones();
+                }
+            }
+        }, 500); // Check every 500ms for precision
+    },
+
+    updateAlarmBadge() {
+        const badge = document.getElementById('alarmBadge');
+        const now = Date.now();
+        const upcoming = this.alarms.filter(a => a.triggerTime > now).length;
+
+        if (upcoming > 0) {
+            badge.textContent = upcoming;
+            badge.classList.remove('hidden');
+            badge.style.display = 'flex';
+        } else {
+            badge.classList.add('hidden');
+            badge.style.display = 'none';
+        }
+    },
+
+    // ── Rendering: Alarms ──────────────────────────────────
+    renderAlarms() {
+        const container = document.getElementById('alarmsList');
+        const emptyEl = document.getElementById('emptyAlarms');
+        const upcomingSection = document.getElementById('upcomingAlarmsSection');
+        const upcomingContainer = document.getElementById('upcomingAlarmsList');
+
+        const now = Date.now();
+        // Sort: active (not dismissed) alarms by trigger time ascending
+        const activeAlarms = this.alarms.filter(a => !a.dismissed).sort((a, b) => a.triggerTime - b.triggerTime);
+        const pastAlarms = this.alarms.filter(a => a.dismissed && a.triggerTime < now).sort((a, b) => b.triggerTime - a.triggerTime);
+
+        if (activeAlarms.length === 0 && pastAlarms.length === 0) {
+            container.innerHTML = '';
+            emptyEl.classList.remove('hidden');
+            upcomingSection.classList.add('hidden');
+            this.updateAlarmBadge();
+            return;
+        }
+
+        emptyEl.classList.add('hidden');
+
+        // Upcoming alarms (not yet triggered, not dismissed)
+        const upcoming = activeAlarms.filter(a => a.triggerTime > now);
+        if (upcoming.length > 0) {
+            upcomingSection.classList.remove('hidden');
+            upcomingContainer.innerHTML = upcoming.map(alarm => this.renderAlarmCard(alarm)).join('');
+        } else {
+            upcomingSection.classList.add('hidden');
+        }
+
+        // Past alarms section
+        if (pastAlarms.length > 0) {
+            upcomingSection.classList.remove('hidden');
+            const pastHeader = '<h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 mt-4">Past</h3>';
+            upcomingContainer.innerHTML += pastHeader + pastAlarms.map(alarm => this.renderAlarmCard(alarm, true)).join('');
+        }
+
+        this.updateAlarmBadge();
+    },
+
+    renderAlarmCard(alarm, isPast = false) {
+        const triggerDate = new Date(alarm.triggerTime);
+        const now = Date.now();
+        const timeStr = triggerDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const dateStr = triggerDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        let countdown = '';
+        if (!isPast) {
+            const diff = alarm.triggerTime - now;
+            if (diff > 0) {
+                const hours = Math.floor(diff / 3600000);
+                const mins = Math.floor((diff % 3600000) / 60000);
+                if (hours > 24) {
+                    countdown = `<span class="text-xs text-gray-400">${Math.floor(hours / 24)}d ${hours % 24}h left</span>`;
+                } else if (hours > 0) {
+                    countdown = `<span class="text-xs text-yellow-600 font-medium">${hours}h ${mins}m left</span>`;
+                } else {
+                    countdown = `<span class="text-xs text-yellow-600 font-medium">${mins}m left</span>`;
+                }
+            }
+        }
+
+        return `
+            <div class="bg-white rounded-xl shadow-sm p-4 ${isPast ? 'opacity-50' : ''}">
+                <div class="flex items-center justify-between">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="w-4 h-4 text-yellow-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span class="font-bold text-gray-800">${this.escapeHtml(alarm.zoneName)}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 ml-6">${dateStr} at ${timeStr}</p>
+                    </div>
+                    <div class="flex items-center gap-2 ml-3">
+                        ${countdown ? `<span class="text-xs font-medium text-yellow-600 mr-1">${countdown}</span>` : ''}
+                        <button onclick="app.deleteAlarm('${alarm.id}')" class="p-2 rounded-lg hover:bg-red-50 active:bg-red-100 transition ${isPast ? 'opacity-40' : ''}" title="Delete alarm">
+                            <svg class="w-4 h-4 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
     },
 
     // ── Rendering: Zones ───────────────────────────────────
@@ -869,7 +1735,7 @@ const app = {
 
                     <div class="flex gap-2">
                         ${!isActive ? `
-                            <button onclick="app.startTimer('${zone.id}')"
+                            <button onclick="app.showStartTimerModal('${zone.id}')"
                                 class="btn-action flex-1 bg-cyan-500 text-white py-3 rounded-xl shadow-md active:bg-cyan-600 flex items-center justify-center gap-2 text-sm">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                 Start
@@ -1028,6 +1894,7 @@ const app = {
         this.updateBanner();
         this.renderCalendar();
         this.renderZoneTotals();
+        this.renderAlarms();
     },
 
     // ── Tab Switching ──────────────────────────────────────
@@ -1054,102 +1921,6 @@ const app = {
     hideAddZoneModal() {
         document.getElementById('addZoneModal').classList.add('hidden');
     },
-    showSettings() {
-        document.getElementById('settingsModal').classList.remove('hidden');
-    },
-    hideSettings() {
-        document.getElementById('settingsModal').classList.add('hidden');
-    },
-
-    // ── Export / Import ────────────────────────────────────
-    exportData() {
-        const data = {
-            version: 1,
-            exportedAt: new Date().toISOString(),
-            zones: this.zones,
-            logs: this.logs
-        };
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `lawn_water_backup_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        this.showToast('Data exported successfully');
-    },
-
-    importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-
-                if (!data.zones || !data.logs) {
-                    throw new Error('Invalid format');
-                }
-
-                // Confirm merge or replace
-                const existingZones = this.zones.length;
-                const existingLogs = this.logs.length;
-
-                let merged = true;
-                if (existingZones > 0 || existingLogs > 0) {
-                    merged = confirm(
-                        `You have ${existingZones} zones and ${existingLogs} logs.\n\n` +
-                        'OK = Merge with existing data\n' +
-                        'Cancel = Replace all data'
-                    );
-                }
-
-                if (merged) {
-                    // Merge zones (avoid duplicates by id)
-                    const existingIds = new Set(this.zones.map(z => z.id));
-                    for (const zone of data.zones) {
-                        if (!existingIds.has(zone.id)) this.zones.push(zone);
-                    }
-
-                    // Merge logs (avoid duplicates by id)
-                    const logIds = new Set(this.logs.map(l => l.id));
-                    for (const log of data.logs) {
-                        if (!logIds.has(log.id)) this.logs.push(log);
-                    }
-                } else {
-                    this.zones = data.zones;
-                    this.logs = data.logs;
-                }
-
-                this.saveZones();
-                this.saveLogs();
-                this.render();
-                this.hideSettings();
-                this.showToast(`Imported ${data.zones.length} zones, ${data.logs.length} logs`);
-            } catch (err) {
-                alert('Failed to import: ' + err.message);
-            }
-        };
-        reader.readAsText(file);
-        event.target.value = ''; // Reset file input
-    },
-
-    clearAllData() {
-        if (!confirm('Delete ALL zones and watering logs? This cannot be undone.')) return;
-        this.zones = [];
-        this.logs = [];
-        this.activeTimers = {};
-        this.saveZones();
-        this.saveLogs();
-        localStorage.removeItem(this.STORAGE_KEY_TIMERS);
-        this.render();
-        this.hideSettings();
-        this.showToast('All data cleared');
-    },
 
     // ── Toast ──────────────────────────────────────────────
     showToast(message) {
@@ -1161,6 +1932,11 @@ const app = {
     },
 
     // ── Utility ────────────────────────────────────────────
+    toLocalDateString(date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    },
+
     toDatetimeLocal(date) {
         const pad = (n) => String(n).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -1201,6 +1977,7 @@ const app = {
         this.loadState();
         this.render();
         this.startTimerLoop();
+        this.startAlarmChecker();
 
         // Handle Enter key in modals
         document.getElementById('newZoneName').addEventListener('keydown', (e) => {
@@ -1216,6 +1993,34 @@ const app = {
         const endInput = document.getElementById('editSessionEnd');
         startInput.addEventListener('change', () => this.updateEditDuration());
         endInput.addEventListener('change', () => this.updateEditDuration());
+
+        // Update alarm preview when inputs change
+        document.getElementById('alarmZone').addEventListener('change', () => this.updateAlarmPreview());
+        document.getElementById('alarmDate').addEventListener('change', () => this.updateAlarmPreview());
+        document.getElementById('alarmTime').addEventListener('change', () => this.updateAlarmPreview());
+
+        // Update start timer preview when inputs change
+        document.getElementById('customOffset').addEventListener('input', (e) => {
+            const mins = parseInt(e.target.value) || 0;
+            if (mins > 0) {
+                this.currentOffsetMs = mins * 60 * 1000;
+                // Deselect presets
+                ['offsetNow', 'offset1min', 'offset5min', 'offset10min'].forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.classList.remove('bg-cyan-500', 'text-white');
+                        btn.classList.add('bg-gray-100', 'text-gray-700');
+                    }
+                });
+                this.updateStartTimerPreview();
+            } else {
+                this.currentOffsetMs = 0;
+                this.setActiveOffsetPreset(0);
+                this.updateStartTimerPreview();
+            }
+        });
+
+        document.getElementById('stopAlarmDuration').addEventListener('change', () => this.updateStartTimerPreview());
 
         // Before unload: save any running timers as completed if needed
         window.addEventListener('beforeunload', () => {
