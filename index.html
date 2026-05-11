@@ -631,7 +631,7 @@ const app = {
         }
 
         // Add offset (negative offset means started in the past)
-        return baseDuration + (timer.offsetMs || 0);
+        return baseDuration;
     },
 
     getFormattedDuration(ms) {
