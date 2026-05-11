@@ -462,6 +462,7 @@
             <div class="flex gap-2 mb-4">
                 <select id="stopAlarmDuration" class="flex-1 px-3 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-cyan-500 focus:outline-none bg-white">
                     <option value="0">No reminder</option>
+                    <option value="0.25">15 seconds (test)</option>
                     <option value="15">15 minutes</option>
                     <option value="20">20 minutes</option>
                     <option value="30" selected>30 minutes (default)</option>
@@ -499,6 +500,12 @@
                     </div>
                 </div>
                 <div class="flex gap-2 flex-shrink-0">
+                    <button onclick="app.snoozeStopAlarm(1)" class="btn-action bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-xl shadow-md active:bg-yellow-700 text-sm font-bold whitespace-nowrap">
+                        Snooze 1m
+                    </button>
+                    <button onclick="app.snoozeStopAlarm(5)" class="btn-action bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl shadow-md active:bg-yellow-800 text-sm font-bold whitespace-nowrap">
+                        Snooze 5m
+                    </button>
                     <button onclick="app.dismissStopAlarm()" class="btn-action bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl shadow-md active:bg-green-800 text-sm font-bold whitespace-nowrap">
                         Stopped
                     </button>
@@ -758,7 +765,22 @@ const app = {
         const zoneId = this.startTimerZoneId;
         if (!zoneId) return;
 
-        const stopAlarmMinutes = parseInt(document.getElementById('stopAlarmDuration').value) || 0;
+        const stopAlarmMinutes = parseFloat(document.getElementById('stopAlarmDuration').value) || 0;
+
+        // Prevent any other active timers' stop alarms from firing by marking them as triggered
+        for (const [id, timer] of Object.entries(this.activeTimers)) {
+            if (id !== zoneId && timer.stopAlarmMinutes > 0) {
+                const elapsed = Date.now() - timer.startTime + (timer.cumulativeMs || 0);
+                const stopDuration = timer.stopAlarmMinutes * 60 * 1000;
+                if (elapsed >= stopDuration) {
+                    // Already past threshold — mark as triggered so it won't fire again
+                    timer.stopAlarmTriggered = true;
+                } else {
+                    // Not yet at threshold — reset _stopAlarmFired so it can still fire later
+                    timer._stopAlarmFired = false;
+                }
+            }
+        }
 
         // Calculate actual start time (now - offset)
         const actualStartTime = Date.now() - this.currentOffsetMs;
@@ -769,7 +791,8 @@ const app = {
             cumulativeMs: 0,
             offsetMs: this.currentOffsetMs,
             stopAlarmMinutes: stopAlarmMinutes,
-            stopAlarmTriggered: false
+            stopAlarmTriggered: false,
+            _stopAlarmFired: false
         };
 
         this.saveActiveTimers();
@@ -794,7 +817,6 @@ const app = {
 
     dismissStopAlarm() {
         if (this.activeStopAlarmZoneId) {
-            // Mark as triggered so it doesn't fire again until next start
             const timer = this.activeTimers[this.activeStopAlarmZoneId];
             if (timer) {
                 timer.stopAlarmTriggered = true;
@@ -802,10 +824,36 @@ const app = {
             }
         }
 
+        // Stop sound immediately and prevent re-triggering
         this.stopAlarmSound();
+        this.stopAlarmDismissed = true;
+
         document.getElementById('stopAlarmBanner').classList.add('hidden');
         document.body.classList.remove('alarm-flash-bg');
         this.activeStopAlarmZoneId = null;
+    },
+
+    snoozeStopAlarm(minutes = 5) {
+        if (!this.activeStopAlarmZoneId) return;
+
+        const timer = this.activeTimers[this.activeStopAlarmZoneId];
+        if (timer && timer.stopAlarmMinutes > 0) {
+            // Add the specified minutes to the stop alarm duration
+            timer.stopAlarmMinutes += minutes;
+            timer.stopAlarmTriggered = false;
+            timer._stopAlarmFired = false; // Allow re-triggering after snooze
+            this.saveActiveTimers();
+
+            this.stopAlarmSound();
+            this.stopAlarmDismissed = true;
+
+            document.getElementById('stopAlarmBanner').classList.add('hidden');
+            document.body.classList.remove('alarm-flash-bg');
+            this.activeStopAlarmZoneId = null;
+
+            this.renderZones();
+            this.showToast(`Stop reminder snoozed for ${minutes} minute${minutes !== 1 ? 's' : ''}`);
+        }
     },
 
     // ── Zone Management ────────────────────────────────────
@@ -1187,20 +1235,32 @@ const app = {
         // Restore active timers (account for time while tab was closed)
         for (const [id, timer] of Object.entries(savedTimers)) {
             if (timer.startTime && !(timer.pausedDuration !== undefined && timer.pausedDuration > 0)) {
+                const elapsed = Date.now() - timer.startTime + (timer.cumulativeMs || 0);
+                // If stop alarm threshold already passed while tab was closed, clear it
+                const stopAlarmMinutes = (timer.stopAlarmMinutes && elapsed < timer.stopAlarmMinutes * 60000) ? timer.stopAlarmMinutes : 0;
+                
                 this.activeTimers[id] = {
                     startTime: timer.startTime,
                     pausedDuration: 0,
                     cumulativeMs: timer.cumulativeMs || 0,
                     offsetMs: timer.offsetMs || 0,
-                    stopAlarmMinutes: timer.stopAlarmMinutes || 0
+                    stopAlarmMinutes: stopAlarmMinutes,
+                    stopAlarmTriggered: false,
+                    _stopAlarmFired: false
                 };
             } else if (timer.startTime && (timer.pausedDuration !== undefined)) {
+                const elapsed = timer.cumulativeMs || 0;
+                // If paused and threshold already passed, clear it
+                const stopAlarmMinutes = (timer.stopAlarmMinutes && elapsed < timer.stopAlarmMinutes * 60000) ? timer.stopAlarmMinutes : 0;
+
                 this.activeTimers[id] = {
                     startTime: timer.startTime,
                     pausedDuration: timer.pausedDuration,
                     cumulativeMs: timer.cumulativeMs || 0,
                     offsetMs: timer.offsetMs || 0,
-                    stopAlarmMinutes: timer.stopAlarmMinutes || 0
+                    stopAlarmMinutes: stopAlarmMinutes,
+                    stopAlarmTriggered: false,
+                    _stopAlarmFired: false
                 };
             }
         }
@@ -1417,6 +1477,9 @@ const app = {
                 const osc = this.alarmAudioCtx.createOscillator();
                 const gain = this.alarmAudioCtx.createGain();
 
+                // Store reference so stopAlarmSound can kill it immediately
+                this.alarmOscillator = osc;
+
                 osc.connect(gain);
                 gain.connect(this.alarmAudioCtx.destination);
 
@@ -1505,8 +1568,9 @@ const app = {
                 const elapsed = Date.now() - timer.startTime + (timer.cumulativeMs || 0);
                 const stopDuration = timer.stopAlarmMinutes * 60 * 1000;
 
-                // Check if we just crossed the threshold (within last second to avoid double-firing)
-                if (elapsed >= stopDuration && elapsed < stopDuration + 2000) {
+                // Trigger when we first cross the threshold
+                if (elapsed >= stopDuration && !(timer._stopAlarmFired)) {
+                    timer._stopAlarmFired = true;
                     this.activeStopAlarmZoneId = zoneId;
                     const zone = this.zones.find(z => z.id === zoneId);
 
@@ -1694,6 +1758,13 @@ const app = {
                         <div class="mb-3 bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-500 mb-1 font-medium">${isPaused ? 'PAUSED' : 'ELAPSED TIME'}</p>
                             <p id="zoneTimer_${zone.id}" class="timer-display text-2xl font-bold text-cyan-600">${this.getFormattedDuration(this.getElapsedMs(zone.id))}</p>
+                        </div>
+                    ` : ''}
+
+                    ${isActive && timerState && timerState.stopAlarmMinutes > 0 ? `
+                        <div id="stopCountdown_${zone.id}" class="mb-3 bg-yellow-50 rounded-xl p-3 text-center">
+                            <p class="text-xs text-yellow-700 mb-1 font-medium">${isPaused ? 'PAUSED — COUNTDOWN FROZEN' : 'TIME REMAINING'}</p>
+                            <p id="stopCountdownTime_${zone.id}" class="timer-display text-lg font-bold text-yellow-700"></p>
                         </div>
                     ` : ''}
 
@@ -1951,21 +2022,84 @@ const app = {
     // ── Timer Update Loop ──────────────────────────────────
     startTimerLoop() {
         setInterval(() => {
-            let needsRender = false;
-
             for (const [zoneId, timer] of Object.entries(this.activeTimers)) {
                 const isPaused = timer.pausedDuration !== undefined && timer.pausedDuration > 0;
+
                 if (!isPaused) {
-                    // Update live display
+                    // Update live elapsed display
                     const el = document.getElementById('zoneTimer_' + zoneId);
                     if (el) {
                         el.textContent = this.getFormattedDuration(this.getElapsedMs(zoneId));
                     }
 
+                    // Update stop alarm countdown
+                    if (timer.stopAlarmMinutes > 0 && !timer.stopAlarmTriggered) {
+                        const elapsed = this.getElapsedMs(zoneId);
+                        const totalStopTime = timer.stopAlarmMinutes * 60 * 1000;
+                        const remaining = Math.max(0, totalStopTime - elapsed);
+
+                        const countdownEl = document.getElementById('stopCountdownTime_' + zoneId);
+                        if (countdownEl) {
+                            if (remaining <= 0) {
+                                countdownEl.textContent = 'NOW!';
+                            } else {
+                                const mins = Math.floor(remaining / 60000);
+                                const secs = Math.floor((remaining % 60000) / 1000);
+                                countdownEl.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+                            }
+                        }
+
+                        // Update banner countdown if this is the active zone
+                        const bannerEl = document.getElementById('activeTimerDuration');
+                        if (bannerEl && Object.keys(this.activeTimers).length === 1) {
+                            if (remaining <= 0) {
+                                bannerEl.textContent = 'NOW!';
+                            } else {
+                                bannerEl.textContent = `${mins}:${String(secs).padStart(2, '0')} left`;
+                            }
+                        }
+
+                        // Flash countdown when under 30 seconds
+                        const countdownContainer = document.getElementById('stopCountdown_' + zoneId);
+                        if (countdownContainer && remaining > 0 && remaining <= 30000) {
+                            countdownContainer.classList.add('bg-red-50');
+                            countdownContainer.classList.remove('bg-yellow-50');
+                            const labelEl = countdownContainer.querySelector('.text-xs');
+                            if (labelEl) labelEl.textContent = 'ALMOST TIME!';
+                        } else if (countdownContainer && remaining > 30000) {
+                            countdownContainer.classList.remove('bg-red-50');
+                            countdownContainer.classList.add('bg-yellow-50');
+                            const labelEl = countdownContainer.querySelector('.text-xs');
+                            if (labelEl) labelEl.textContent = isPaused ? 'PAUSED — COUNTDOWN FROZEN' : 'TIME REMAINING';
+                        }
+                    }
+
                     // Update banner
                     const bannerEl = document.getElementById('activeTimerDuration');
                     if (bannerEl && Object.keys(this.activeTimers).length === 1) {
-                        bannerEl.textContent = this.getFormattedDuration(this.getElapsedMs(zoneId));
+                        if (!timer.stopAlarmMinutes || timer.stopAlarmTriggered) {
+                            bannerEl.textContent = this.getFormattedDuration(this.getElapsedMs(zoneId));
+                        }
+                    }
+                } else {
+                    // Paused: show frozen time on zone card
+                    const el = document.getElementById('zoneTimer_' + zoneId);
+                    if (el) {
+                        el.textContent = this.getFormattedDuration(this.getElapsedMs(zoneId));
+                    }
+
+                    // Freeze countdown display when paused
+                    if (timer.stopAlarmMinutes > 0 && !timer.stopAlarmTriggered) {
+                        const elapsed = this.getElapsedMs(zoneId);
+                        const totalStopTime = timer.stopAlarmMinutes * 60 * 1000;
+                        const remaining = Math.max(0, totalStopTime - elapsed);
+
+                        const countdownEl = document.getElementById('stopCountdownTime_' + zoneId);
+                        if (countdownEl && remaining > 0) {
+                            const mins = Math.floor(remaining / 60000);
+                            const secs = Math.floor((remaining % 60000) / 1000);
+                            countdownEl.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+                        }
                     }
                 }
             }
