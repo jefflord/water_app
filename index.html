@@ -2052,9 +2052,12 @@ const app = {
                         // Update banner countdown if this is the active zone
                         const bannerEl = document.getElementById('activeTimerDuration');
                         if (bannerEl && Object.keys(this.activeTimers).length === 1) {
+                            let mins, secs;
                             if (remaining <= 0) {
                                 bannerEl.textContent = 'NOW!';
                             } else {
+                                mins = Math.floor(remaining / 60000);
+                                secs = Math.floor((remaining % 60000) / 1000);
                                 bannerEl.textContent = `${mins}:${String(secs).padStart(2, '0')} left`;
                             }
                         }
