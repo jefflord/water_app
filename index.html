@@ -246,6 +246,9 @@
                     <p class="text-gray-400 text-sm">No watering data for this month</p>
                 </div>
             </div>
+
+            <!-- Daily Totals -->
+            <div id="dailyTotals" class="bg-white rounded-xl shadow-sm p-4 mt-4"></div>
         </div>
 
         <!-- Tab: Alarms -->
@@ -857,6 +860,26 @@ const app = {
             this.renderZones();
             this.showToast(`Stop reminder snoozed for ${minutes} minute${minutes !== 1 ? 's' : ''}`);
         }
+    },
+
+    bumpStopAlarm(zoneId, minutes) {
+        const timer = this.activeTimers[zoneId];
+        if (!timer || timer.stopAlarmMinutes <= 0) return;
+
+        timer.stopAlarmMinutes += minutes;
+        timer.stopAlarmTriggered = false;
+        timer._stopAlarmFired = false;
+        this.saveActiveTimers();
+
+        // Dismiss banner if it's showing for this zone
+        if (this.activeStopAlarmZoneId === zoneId) {
+            document.getElementById('stopAlarmBanner').classList.add('hidden');
+            document.body.classList.remove('alarm-flash-bg');
+            this.activeStopAlarmZoneId = null;
+        }
+
+        this.renderZones();
+        this.showToast(`Stop reminder extended by ${minutes} minute${minutes !== 1 ? 's' : ''}`);
     },
 
     // ── Zone Management ────────────────────────────────────
@@ -1768,6 +1791,12 @@ const app = {
                         <div id="stopCountdown_${zone.id}" class="mb-3 bg-yellow-50 rounded-xl p-3 text-center">
                             <p class="text-xs text-yellow-700 mb-1 font-medium">${isPaused ? 'PAUSED — COUNTDOWN FROZEN' : 'TIME REMAINING'}</p>
                             <p id="stopCountdownTime_${zone.id}" class="timer-display text-lg font-bold text-yellow-700"></p>
+                            ${!isPaused ? `
+                                <button onclick="app.bumpStopAlarm('${zone.id}', 5)" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-yellow-900 text-xs font-bold rounded-lg transition shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                    +5 min
+                                </button>
+                            ` : ''}
                         </div>
                     ` : ''}
 
@@ -1878,7 +1907,13 @@ const app = {
             if (hasWater) classes += ' has-water';
             if (isToday) classes += ' today';
 
-            html += `<div class="${classes}">${day}</div>`;
+            const totalMs = wateredDates[day] || 0;
+            const durationText = totalMs > 0 ? this.getFormattedDuration(totalMs) : '';
+
+            html += `<div class="${classes}">
+                <span>${day}</span>
+                ${durationText ? `<span class="absolute bottom-0.5 text-[9px] font-bold opacity-80">${durationText}</span>` : ''}
+            </div>`;
         }
 
         document.getElementById('calendarGrid').innerHTML = html;
@@ -1940,6 +1975,39 @@ const app = {
                 </div>
             `;
         }).join('');
+
+        // Daily totals section
+        const dailyTotals = {};
+        for (const log of monthLogs) {
+            const d = new Date(log.startTime);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            if (!dailyTotals[key]) dailyTotals[key] = { totalMs: 0, count: 0 };
+            dailyTotals[key].totalMs += log.durationMs;
+            dailyTotals[key].count++;
+        }
+
+        const dailyContainer = document.getElementById('dailyTotals');
+        if (dailyContainer && Object.keys(dailyTotals).length > 0) {
+            const sortedDays = Object.entries(dailyTotals).sort((a, b) => a[0].localeCompare(b[0]));
+            dailyContainer.innerHTML = `
+                <h3 class="font-bold text-gray-800 mb-2 mt-4">Daily Totals</h3>
+                ${sortedDays.map(([date, data]) => {
+                    const d = new Date(date + 'T12:00:00');
+                    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                    return `
+                        <div class="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                            <span class="text-sm text-gray-700">${dayName}, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-400">${data.count} session${data.count !== 1 ? 's' : ''}</span>
+                                <span class="font-bold text-sm text-cyan-600">${this.getFormattedDuration(data.totalMs)}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        } else if (dailyContainer) {
+            dailyContainer.innerHTML = '';
+        }
     },
 
     // ── Rendering: Banner ──────────────────────────────────
